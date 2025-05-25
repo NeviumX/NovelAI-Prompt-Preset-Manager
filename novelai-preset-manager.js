@@ -873,6 +873,7 @@ class JsonManager {
                                 meta.v4_negative_prompt.caption.base_caption = raw.negCaption.base_caption ?? meta.v4_negative_prompt.caption.base_caption;
                                 meta.v4_negative_prompt.caption.char_captions = raw.negCaption.char_captions ?? meta.v4_negative_prompt.caption.char_captions;
                             }
+                            if (raw.negativeV3) { meta.uc = raw.negativeV3 }
 
                             const newTxt = new TextEncoder().encode(JSON.stringify(meta));
                             const delta = newTxt.length - oldLen;
