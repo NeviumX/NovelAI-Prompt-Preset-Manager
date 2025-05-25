@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         NovelAI Prompt Preset Manager
-// @namespace    http://tampermonkey.net/
+// @namespace    https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
 // @version      1.0
 // @description  Script to replace __TOKEN__ with prompt anything you want before making a request to the API on the NovelAI. 
 // @author       Gemini 2.5 Pro, ChatGPT o3, Nevium7
