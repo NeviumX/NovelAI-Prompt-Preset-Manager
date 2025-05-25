@@ -729,7 +729,7 @@ class JsonManager {
                                 inputPrompt : jsonData.input ?? '',
                                 caption     : safeCopy(params.v4_prompt?.caption),
                                 negCaption  : safeCopy(params.v4_negative_prompt?.caption),
-                                negativeV3  : jsonData.negative_prompt ?? ''
+                                negative    : jsonData.negative_prompt ?? ''
                             };
                             debugLog('[PresetMgr] Stored raw prompt data for patching.');
                         } catch(e) { console.error('[PresetMgr] Error parsing prompt data:', e); }
@@ -873,7 +873,7 @@ class JsonManager {
                                 meta.v4_negative_prompt.caption.base_caption = raw.negCaption.base_caption ?? meta.v4_negative_prompt.caption.base_caption;
                                 meta.v4_negative_prompt.caption.char_captions = raw.negCaption.char_captions ?? meta.v4_negative_prompt.caption.char_captions;
                             }
-                            if (raw.negativeV3) { meta.uc = raw.negativeV3 }
+                            if (raw.negative) { meta.uc = raw.negative }
 
                             const newTxt = new TextEncoder().encode(JSON.stringify(meta));
                             const delta = newTxt.length - oldLen;
