@@ -6,7 +6,7 @@
 // @author       Gemini 2.5 Pro, ChatGPT o3, Nevium7
 // @copyright    Nevium7
 // @match        https://novelai.net/image
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=novelai.net
+// @icon         https://novelai.net/icons/novelai-round.png
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addStyle
