@@ -5,12 +5,11 @@
 // @description  Script to replace __TOKEN__ with prompt anything you want before making a request to the API on the NovelAI. 
 // @author       Gemini 2.5 Pro, ChatGPT o3, Nevium7
 // @copyright    Nevium7
-// @match        https://novelai.net/image
+// @match        https://novelai.net/*
 // @icon         https://novelai.net/icons/novelai-round.png
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addStyle
-// @grant        GM_registerMenuCommand
 // @grant        GM_listValues
 // @grant        GM_deleteValue
 // @grant        unsafeWindow
@@ -79,13 +78,11 @@ if (typeof JSZip !== 'undefined') {
 */
 
 class UIManager {
-
     constructor(root) {
         this.panel = this.injectUI(root);
         this.jsonMgr = jsonManagerSingleton;
     }
     injectUI(root) {
-
         const panelID = 'nai-preset-panel-injected';
         const existed = document.getElementById(panelID);
         if (existed) return existed;
@@ -100,7 +97,6 @@ class UIManager {
     }
     destroy(){
         if (!this.panel) return;
-
         /* gear のポップアップのクリックハンドラを外す */
         if (this._onDocClick){
             document.removeEventListener('click', this._onDocClick, false);
@@ -412,7 +408,6 @@ class SuggestionManager {
         this.box = this.createBox();
         this.bind();
     }
-
     createBox() {
         const div = document.createElement('div');
         div.className = 'nai-suggest-box';
@@ -420,7 +415,6 @@ class SuggestionManager {
         document.body.appendChild(div);
         return div;
     }
-
     /* サジェストボックスのイベントをバインド */
     bind() {
         this.editor.addEventListener('input', () => this.update());
@@ -441,7 +435,6 @@ class SuggestionManager {
         })
         document.addEventListener('keydown', e => { if (e.key === 'Escape') this.hide(); });
     }
-
     /* caret 左側文字列を取得 */
     textBeforeCaret() {
         const sel = window.getSelection();
@@ -451,7 +444,6 @@ class SuggestionManager {
         rng.setStart(this.editor, 0);
         return rng.toString();
     }
-
     /* 候補計算 & 表示 */
     update() {
         const txt  = this.textBeforeCaret();
@@ -478,10 +470,8 @@ class SuggestionManager {
             keys.sort(); keys = keys.slice(0, 100);
             if (keys.length) return this.render(keys.map(k => ({type:'token', text:`__${k}__`})));
         }
-
         this.hide();
     }
-
     /* 候補を表示 */
     render(items) {
         this.box.innerHTML = '';
@@ -500,7 +490,6 @@ class SuggestionManager {
         this.box.style.top     = `${rect.bottom + window.scrollY + 4}px`;
         this.box.style.display = 'block';
     }
-
     /* ↑↓ Tab Space */
     nav(e) {
         if (this.box.style.display === 'none') return;
@@ -512,7 +501,6 @@ class SuggestionManager {
         if (e.key === 'Tab' || e.key === ' ') { e.preventDefault(); this.choose(items[this.selIdx]); }
         this.highlight();
     }
-
     /* 候補を選択して置換 */
     choose(item) {
         const sel = window.getSelection();
@@ -540,7 +528,6 @@ class SuggestionManager {
         }
         this.hide();
     }
-
     /* 選択中の候補をハイライト */
     highlight() {
         [...this.box.children].forEach((d,i)=> {
@@ -548,10 +535,8 @@ class SuggestionManager {
             d.style.background = i===this.selIdx ? '#444' : '';
         });
     }
-
     /* 選択を解除して非表示 */
     hide() { this.box.style.display = 'none'; this.selIdx = -1; }
-
     /** 生成した要素・リスナを片付けてインスタンスを無効化 */
     destroy() {
         this.editor.removeEventListener('input', this._onInput, true);
@@ -627,7 +612,6 @@ class PromptBoxObserver {
             prev.destroy();
             this.map.delete(root);
         }
-
         if (!this.map.has(root)) {
             const ui = new UIManager(root);
             this.map.set(root, ui);
@@ -667,7 +651,6 @@ class JsonManager {
         this._dictCache  = this.buildDict();
         this.installPatch();
     }
-
     /* GM_storage → {TOKEN: "value"} へ変換 */
     buildDict() {
         const dict = {};
@@ -736,6 +719,11 @@ class JsonManager {
                     }
 
                     const modifiedBody = JSON.stringify(deep(JSON.parse(bodyText)));
+
+                    if( modifiedBody === bodyText ) {
+                        debugLog('[PresetMgr] No changes in body, skipping patching.'); 
+                        return origFetch.call(this, input, init);
+                    }
 
                     let finalInput, finalInit;
                     if (typeof input === 'string') {
