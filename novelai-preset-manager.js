@@ -50,6 +50,7 @@ GM_addStyle(/* css */`
     .nai-suggest-box          {position:fixed; z-index:2147483647; background:#222; border:1px solid #555;
                                 border-radius:4px; max-height:180px; overflow-y:auto; font-size:13px; color:#eee}
     .nai-suggest-item         {padding:4px 8px; cursor:pointer}
+    .nai-suggest-item.active  {background-color: #444}
     @keyframes Flash          {0%{background:#444} 100%{background:#242424}}
     `);
 
@@ -416,23 +417,30 @@ class SuggestionManager {
     }
     /* サジェストボックスのイベントをバインド */
     bind() {
-        this.editor.addEventListener('input', () => this.update());
-        this.editor.addEventListener('keydown', e => this.nav(e));
-        this.editor.addEventListener('click',  () => this.hide());
-        this.box.addEventListener('mousedown', e => {
+        this._updateHandler = () => this.update();
+        this._navHandler = (e) => this.nav(e);
+        this._hideHandler = () => this.hide();
+        this._mousedownHandler = (e) => {
             if (e.target.classList.contains('nai-suggest-item')) {
                 e.preventDefault();
-                this.choose(e.target);
+                this.choose(e.target, e.shiftKey); //Shiftキーの状態を渡す
             }
-        });
-        this.box.addEventListener('mouseover', e => {
+        };
+        this._mouseoverHandler = (e) => {
             if (e.target.classList.contains('nai-suggest-item')) {
                 e.preventDefault();
                 this.selIdx = [...this.box.children].indexOf(e.target);
                 this.highlight();
             }
-        })
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') this.hide(); });
+        };
+        this._escapeKeyHandler = (e) => { if (e.key === 'Escape') this.hide(); };
+
+        this.editor.addEventListener('input', this._updateHandler);
+        this.editor.addEventListener('keydown', this._navHandler);
+        this.editor.addEventListener('click', this._hideHandler);
+        this.box.addEventListener('mousedown', this._mousedownHandler);
+        this.box.addEventListener('mouseover', this._mouseoverHandler);
+        document.addEventListener('keydown', this._escapeKeyHandler);
     }
     /* caret 左側文字列を取得 */
     textBeforeCaret() {
@@ -453,11 +461,11 @@ class SuggestionManager {
         if (mVal && dict[mVal[1]]) {
         const [ , key, part ] = mVal;
         const list = dict[key]
-            .split(/\\r?\\n/)
+            .split(/\r?\n/)
             .filter(Boolean)
             .filter(l => l.toLowerCase().includes(part.toLowerCase()))
             .slice(0, 100);
-        if (list.length) return this.render(list.map(t => ({type:'value', text:t})));
+        if (list.length) return this.render(list.map(t => ({type:'value', text:t, originalKey: key })));
         }
 
         /* 2) __foo → トークン候補 */
@@ -474,74 +482,160 @@ class SuggestionManager {
     /* 候補を表示 */
     render(items) {
         this.box.innerHTML = '';
-        items.forEach(({text}) => {
+        items.forEach((itemData) => {
             const div = document.createElement('div');
-            div.className = 'nai-suggest-item';
-            div.textContent = text;
+            div.className    = 'nai-suggest-item';
+            div.textContent  = itemData.text;
+            div.dataset.type = itemData.type; // 'token' または 'value'
+            if (itemData.type === 'value' && itemData.originalKey) {
+                div.dataset.originalKey = itemData.originalKey;
+            }
             this.box.appendChild(div);
         });
         this.selIdx = 0;
         this.highlight();
 
-        const sel  = window.getSelection();
-        const rect = sel.getRangeAt(0).getBoundingClientRect();
-        this.box.style.left    = `${rect.left + window.scrollX}px`;
-        this.box.style.top     = `${rect.bottom + window.scrollY + 4}px`;
-        this.box.style.display = 'block';
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0) {
+            const rect = sel.getRangeAt(0).getBoundingClientRect();
+            this.box.style.left = `${rect.left + window.scrollX}px`;
+            this.box.style.top  = `${rect.bottom + window.scrollY + 4}px`;
+            this.box.style.display = 'block';
+        } else {
+            this.hide();
+        }
     }
-    /* ↑↓ Tab Space */
+    /* ↑↓ Tab Space (Shift+Space対応) */
     nav(e) {
         if (this.box.style.display === 'none') return;
         const items = [...this.box.children];
         if (!items.length) return;
 
         if (e.key === 'ArrowDown') { e.preventDefault(); this.selIdx = (this.selIdx + 1) % items.length; }
-        if (e.key === 'ArrowUp')   { e.preventDefault(); this.selIdx = (this.selIdx - 1 + items.length) % items.length; }
-        if (e.key === 'Tab' || e.key === ' ') { e.preventDefault(); this.choose(items[this.selIdx]); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); this.selIdx = (this.selIdx - 1 + items.length) % items.length; }
+        if (e.key === 'Tab' || e.key === ' ') { // Spaceキーの場合、Shiftキーの状態も渡す
+            e.preventDefault();
+            this.choose(items[this.selIdx], e.shiftKey);
+        }
         this.highlight();
     }
     /* 候補を選択して置換 */
-    choose(item) {
+    choose(itemElement, shiftPressed = false) {
         const sel = window.getSelection();
         if (!sel || !sel.rangeCount) return this.hide();
 
-        /* 置換対象文字数を計算 */
-        const full = this.textBeforeCaret();
+        const fullTextBeforeCaret = this.textBeforeCaret();
+        const itemType = itemElement.dataset.type;
+        const suggestionText = itemElement.textContent; // サジェストボックスに表示されているテキスト
 
-        let delLen = 0;
+        let textToInsert = "";
+        let charactersToDelete = 0;
 
-        const valueMatch = full.match(/__([A-Za-z0-9_-]+)__(\w*)$/);
-        if (valueMatch) {
-            delLen = valueMatch[2].length;
-        } else {
-            const tokenMatch = full.match(/__([A-Za-z0-9_-]*)$/);
-            if (tokenMatch) {
-                delLen = tokenMatch[0].length;
+        const newlineReplaceRegex = /\r?\n/g;
+        const newlineTestRegex = /\r?\n/;
+
+        if (itemType === 'value') {
+            const valueTriggerRegex = /__([A-Za-z0-9_.-]+)__(\w*)$/;
+            const currentTriggerMatch = fullTextBeforeCaret.match(valueTriggerRegex);
+
+            if (currentTriggerMatch) {
+                charactersToDelete = currentTriggerMatch[0].length;
+            } else {
+                charactersToDelete = 0;
+            }
+            /** Shiftキーが押された場合 */
+            if (shiftPressed) {
+                const presetName = itemElement.dataset.originalKey;
+                const presetContent = this.jsonMgr.getDict()[presetName];
+                if (typeof presetContent === 'string') {
+                    if (newlineTestRegex.test(presetContent)) {
+                        // 改行があればランダムプロンプト形式に加工
+                        textToInsert = '||' + presetContent.replace(newlineReplaceRegex, '|') + '||';
+                    } else {
+                        textToInsert = presetContent;
+                    }
+                } else {
+                    textToInsert = suggestionText;
+                }
+            } else {
+                // 通常のトークン選択 (Tab または Spaceのみ)
+                textToInsert = suggestionText;
+            }
+        } else if (itemType === 'token') {
+            const tokenTriggerRegex = /__([A-Za-z0-9_.-]*)$/;
+            const fullTokenTriggerRegex = /__([A-Za-z0-9_.-]+)__$/;
+
+            let currentTriggerMatch = fullTextBeforeCaret.match(fullTokenTriggerRegex);
+            if (currentTriggerMatch) {
+                // カーソル前が __FOO__
+                charactersToDelete = currentTriggerMatch[0].length;
+            } else {
+                // カーソル前が __FOO
+                currentTriggerMatch = fullTextBeforeCaret.match(tokenTriggerRegex);
+                if (currentTriggerMatch) {
+                    charactersToDelete = currentTriggerMatch[0].length;
+                } else {
+                    charactersToDelete = 0;
+                }
+            }
+            /** Shiftキーが押された場合 */
+            if (shiftPressed) {
+                const presetName = suggestionText.slice(2, -2);
+                const presetContent = this.jsonMgr.getDict()[presetName];
+                if (typeof presetContent === 'string') {
+                    if (newlineTestRegex.test(presetContent)) {
+                        // 改行があればランダムプロンプト形式に加工
+                        textToInsert = '||' + presetContent.replace(newlineReplaceRegex, '|') + '||';
+                    } else {
+                        textToInsert = presetContent;
+                    }
+                } else {
+                    textToInsert = suggestionText;
+                }
+            } else {
+                // 通常のトークン選択 (Tab または Spaceのみ)
+                textToInsert = suggestionText;
             }
         }
-
-        /* 選択を伸ばして削除・挿入 */
-        if(delLen>0){
-            for (let i = 0; i < delLen; i++) sel.modify('extend', 'backward', 'character');
-            document.execCommand('insertText', false, item.textContent);
+        if (charactersToDelete > 0 || textToInsert) {
+            for (let i = 0; i < charactersToDelete; i++) sel.modify('extend', 'backward', 'character');
+            document.execCommand('insertText', false, textToInsert);
         }
         this.hide();
     }
     /* 選択中の候補をハイライト */
     highlight() {
-        [...this.box.children].forEach((d,i)=> {
+        const items = [...this.box.children];
+        items.forEach((d,i)=> {
             d.classList.toggle('active', i===this.selIdx);
-            d.style.background = i===this.selIdx ? '#444' : '';
         });
+        // 自動スクロール
+        if (items.length > 0 && this.selIdx >= 0 && this.selIdx < items.length) {
+            const selectedItem = items[this.selIdx];
+            const box = this.box;
+
+            const itemTop = selectedItem.offsetTop;
+            const itemBottom = itemTop + selectedItem.offsetHeight;
+            const boxScrollTop = box.scrollTop;
+            const boxVisibleHeight = box.clientHeight;
+
+            if (itemTop < boxScrollTop) {
+                box.scrollTop = itemTop;
+            } else if (itemBottom > boxScrollTop + boxVisibleHeight) {
+                box.scrollTop = itemBottom - boxVisibleHeight;
+            }
+        }
     }
     /* 選択を解除して非表示 */
     hide() { this.box.style.display = 'none'; this.selIdx = -1; }
     /** 生成した要素・リスナを片付けてインスタンスを無効化 */
     destroy() {
-        this.editor.removeEventListener('input', this._onInput, true);
-        this.editor.removeEventListener('keydown', this._onKey,  true);
-        this.editor.removeEventListener('click',  this._onClick,true);
-        document.removeEventListener('keydown',   this._onEsc,  true);
+        this.editor.removeEventListener('input', this._updateHandler);
+        this.editor.removeEventListener('keydown', this._navHandler);
+        this.editor.removeEventListener('click', this._hideHandler);
+        this.box.removeEventListener('mousedown', this._mousedownHandler);
+        this.box.removeEventListener('mouseover', this._mouseoverHandler);
+        document.removeEventListener('keydown', this._escapeKeyHandler);
         this.box.remove();
     }
 }
