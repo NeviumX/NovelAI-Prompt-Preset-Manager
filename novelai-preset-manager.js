@@ -1,5 +1,6 @@
 // ==UserScript==
 // @name         NovelAI Prompt Preset / Wildcards Manager
+// @name:ja      NovelAI Prompt Preset / Wildcards Manager
 // @namespace    https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
 // @version      1.0
 // @description  Script to replace __TOKEN__ with prompt anything you want before making a request to the API on the NovelAI. 
