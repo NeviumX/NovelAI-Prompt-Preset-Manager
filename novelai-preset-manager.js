@@ -4,9 +4,10 @@
 // @namespace    https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
 // @version      1.0
 // @description  Script to replace __TOKEN__ with prompt anything you want before making a request to the API on the NovelAI. 
+// @description:ja NovelAIでAPIにリクエストする前に、__TOKEN__を任意のプロンプトに置き換えるスクリプトです。 
 // @author       Gemini 2.5 Pro, ChatGPT o3, Nevium7
 // @copyright    Nevium7
-// @licence      MIT
+// @license      MIT
 // @match        https://novelai.net/*
 // @icon         https://novelai.net/icons/novelai-round.png
 // @grant        GM_getValue
