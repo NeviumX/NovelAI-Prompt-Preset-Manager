@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         NovelAI Prompt Preset Manager
+// @name         NovelAI Prompt Preset / Wildcards Manager
 // @namespace    https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
 // @version      1.0
 // @description  Script to replace __TOKEN__ with prompt anything you want before making a request to the API on the NovelAI. 
@@ -70,7 +70,7 @@ if (typeof JSZip !== 'undefined') {
 }
 
 /*
-    * イベントメモ
+    * イベント
     * naiRemainUpdate → トークンをメタデータに残すかどうかのトグル
     * naiPresetUpdate → プリセット辞書を更新する
     * naiDebugUpdate  → デバッグモードのトグル
@@ -79,7 +79,7 @@ if (typeof JSZip !== 'undefined') {
 
 class UIManager {
     constructor(root) {
-        this.panel = this.injectUI(root);
+        this.panel   = this.injectUI(root);
         this.jsonMgr = jsonManagerSingleton;
     }
     injectUI(root) {
@@ -114,7 +114,7 @@ class UIManager {
 
         /* title */
         panel.innerHTML = `
-        <div class="nai-preset-title">Prompt Preset Manager</div>
+        <div class="nai-preset-title">Prompt Preset / Wildcards Manager</div>
         <!-- 歯車 -->
         <div class="nai-gear-wrap">
             <button class="nai-gear-btn" title="Settings">
@@ -401,11 +401,10 @@ class UIManager {
 }
 
 class SuggestionManager {
-
     constructor(editor, jsonMgr) {
         this.jsonMgr = jsonMgr;
-        this.editor = editor;
-        this.box = this.createBox();
+        this.editor  = editor;
+        this.box     = this.createBox();
         this.bind();
     }
     createBox() {
@@ -560,7 +559,6 @@ class ProseMirrorObserver {
     attach(node){
         if (!node.isContentEditable) return;
         if (this.map.has(node)) return;
-
         const sm = new SuggestionManager(node, this.jsonMgr);
         this.map.set(node, sm);
         //console.log('[PresetMgr] SuggestionManager added', node);
@@ -578,7 +576,7 @@ class ProseMirrorObserver {
                 if (n.nodeType!==1) return;
                 let i = 0;
                 const elementsSet = new Set(n.querySelectorAll?.('div.ProseMirror[contenteditable]'));
-                if(elementsSet && elementsSet.size != 0) {
+                if(elementsSet && elementsSet.size !== 0) {
                     elementsSet.forEach(el=>{
                         // this is so annoying
                         if (!this.map.has(el) && i < Math.round(elementsSet.size/2) ) { this.attach(el); i++;}
@@ -595,8 +593,7 @@ class ProseMirrorObserver {
 }
 
 class PromptBoxObserver {
-    constructor(jsonMgr){
-        this.jsonMgr = jsonMgr;
+    constructor(){
         this.map     = new Map();
         this.mo      = new MutationObserver(m=>this.handle(m));
         this.start();
@@ -606,7 +603,6 @@ class PromptBoxObserver {
     }
     attach(root){
         const prev = this.map.get(root);
-
         /* パネルが消えていれば破棄して作り直す */
         if (prev && !prev.panel?.isConnected) {
             prev.destroy();
@@ -660,7 +656,7 @@ class JsonManager {
         console.log('[NovelAI Prompt Preset Manager] Preset dict built.');
         return dict;
     }
-    /* ページ側へ JS を注入して fetch / XHR をフック */
+    /* ページ側へ JS を注入 */
     installPatch() {
         if (this._patchInstalled) return;
         this._patchInstalled = true;
@@ -684,7 +680,23 @@ class JsonManager {
             window.addEventListener('naiDebugUpdate', e => {window.__naiDebugMode = e.detail; });
 
             const tokenRe = /__([A-Za-z0-9_., :/|ぁ-んァ-ヶ一-龯★☆-]+?)__/g;
-            const replace = s => s.replace(tokenRe,(m,n)=>window.__naiPresetDict[n]??m);
+            const replace = s => {
+                return s.replace(tokenRe, (match, tokenName) => {
+                    if (Object.prototype.hasOwnProperty.call(window.__naiPresetDict, tokenName)) {
+                        let presetValue = window.__naiPresetDict[tokenName];
+                        if (typeof presetValue === 'string') {
+                            const newlineRegex = new RegExp('\\\\r?\\\\n', 'g');
+                            const newlineTestRegex = new RegExp('\\\\r?\\\\n');
+                            if (newlineTestRegex.test(presetValue)){
+                                return '||' + presetValue.replace(newlineRegex, '|') + '||';
+                            }
+                            else return presetValue;
+                        }
+                        return presetValue;
+                    }
+                    return match;
+                });
+            };
             const deep    = o => (typeof o==='string') ? replace(o)
                                 : Array.isArray(o)      ? o.map(deep)
                                 : o && typeof o==='object'
@@ -912,7 +924,7 @@ class JsonManager {
         scr.textContent = patchCode;
         document.documentElement.appendChild(scr);
         scr.remove();
-        console.log('[NovelAI Prompt Preset Manager] Patches installed to handle Json/Png.');
+        console.log('[NovelAI Prompt Preset Manager] Patches installed to handle JSON/PNG.');
     }
     /* プリセット辞書を更新する */
     updateDict() {
@@ -935,6 +947,6 @@ const jsonManagerSingleton = new JsonManager(); //json manager初期化
     window.__naiPmObserver ??
         (window.__naiPmObserver = new ProseMirrorObserver(jsonManagerSingleton));
     window.__naiPromptObserver ??=
-        (window.__naiPromptObserver = new PromptBoxObserver(jsonManagerSingleton));
+        (window.__naiPromptObserver = new PromptBoxObserver());
 
 })();
