@@ -5,6 +5,7 @@
 // @description  Script to replace __TOKEN__ with prompt anything you want before making a request to the API on the NovelAI. 
 // @author       Gemini 2.5 Pro, ChatGPT o3, Nevium7
 // @copyright    Nevium7
+// @licence      MIT
 // @match        https://novelai.net/*
 // @icon         https://novelai.net/icons/novelai-round.png
 // @grant        GM_getValue
