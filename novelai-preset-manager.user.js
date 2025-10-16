@@ -17,7 +17,7 @@
 // @grant        GM_deleteValue
 // @grant        unsafeWindow
 // @require      https://update.greasyfork.org/scripts/473358/1237031/JSZip.js
-// @run-at       document-start
+// @require      https://cdn.jsdelivr.net/npm/@msgpack/msgpack@3.1.2/dist.umd/msgpack.min.js
 // ==/UserScript==
 
 /* ----------  styles  ---------- */
@@ -70,7 +70,15 @@ if (typeof JSZip !== 'undefined') {
     unsafeWindow.JSZip = JSZip;
     console.log('[PresetMgr] JSZip successfully attached to page context (unsafeWindow).');
 } else {
-    console.error('[PresetMgr] JSZip is not defined in userscript scope despite @require. Check @require path and script manager.');
+    console.error('[PresetMgr] JSZip was not attached to page context (unsafeWindow)!');
+}
+
+// MsgPack
+if (typeof MessagePack !== 'undefined') {
+    unsafeWindow.MessagePack = MessagePack;
+    console.log('[PresetMgr] MessagePack successfully attached to page context (unsafeWindow).');
+} else {
+    console.error('[PresetMgr] MessagePack was not attached to page context (unsafeWindow)!');
 }
 
 /*
@@ -776,7 +784,7 @@ class JsonManager {
             window.addEventListener('naiPresetUpdate', e => { window.__naiPresetDict = e.detail; });
             window.addEventListener('naiDebugUpdate', e => {window.__naiDebugMode = e.detail; });
 
-            const tokenRe = /__([A-Za-z0-9_., :/|ぁ-んァ-ヶ一-龯★☆-]+?)__/g;
+            const tokenRe = /__([A-Za-z0-9_.-]+?)__/g;
             const replace = s => {
                 return s.replace(tokenRe, (match, tokenName) => {
                     if (Object.prototype.hasOwnProperty.call(window.__naiPresetDict, tokenName)) {
@@ -881,9 +889,9 @@ class JsonManager {
                                         const newHeaders = new Headers(res.headers); 
                                         return new Response(newZipBuffer, { status: res.status, statusText: res.statusText, headers: newHeaders });
                                     } else {
-                                         errorLog('[PresetMgr] patchPng returned null or undefined. Returning original response (from cloned zipBuffer).');
-                                         const originalResponseCloneForFallback = new Response(zipBuffer, { status: res.status, statusText: res.statusText, headers: res.headers });
-                                         return originalResponseCloneForFallback;
+                                        errorLog('[PresetMgr] patchPng returned null or undefined. Returning original response (from cloned zipBuffer).');
+                                        const originalResponseCloneForFallback = new Response(zipBuffer, { status: res.status, statusText: res.statusText, headers: res.headers });
+                                        return originalResponseCloneForFallback;
                                     }
                                 } catch (e_png_processing) {
                                     console.error('[PresetMgr] Error during pngFile.async or subsequent patching/zipping:', e_png_processing);
@@ -899,7 +907,112 @@ class JsonManager {
                             console.error('[PresetMgr] Failed to load/process ZIP from binary/octet-stream:', e_zip_load);
                         }
                     }
+                    // generate-image-stream
+                    else if (window.__naiRemain && res.ok && res.headers.get('Content-Type')?.includes('application/msgpack')){
+                        debugLog('[PresetMgr] SSE stream response detected. Starting transform stream for patching...');
+                        try{
+                            if (typeof window.MessagePack === 'undefined') {
+                                console.error('[PresetMgr] window.MessagePack is undefined. Cannot decode.');
+                                return res;
+                            } else if (!res.body) {
+                                console.error('[PresetMgr] Response body is null. Cannot decode stream.');
+                                return res;
+                            }
+
+                            // データを解析し、加工した上で返すための新しいストリームを作成
+                            const transformStream = new ReadableStream({
+                                async start(controller) {
+                                    const reader = res.body.getReader();
+                                    let buffer = new Uint8Array(0);
+
+                                    try {
+                                        while (true) {
+                                            const { value, done } = await reader.read();
+                                            if (done) break;
+
+                                            const newBuffer = new Uint8Array(buffer.length + value.length);
+                                            newBuffer.set(buffer);
+                                            newBuffer.set(value, buffer.length);
+                                            buffer = newBuffer;
+
+                                            while (buffer.length > 4) {
+                                                const messageLength = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
+                                                
+                                                if (buffer.length >= 4 + messageLength) {
+                                                    const messageChunk = buffer.subarray(0, 4 + messageLength); // ヘッダ含む元のバイナリ塊
+                                                    const messageData = buffer.subarray(4, 4 + messageLength);  // データ本体
+                                                    
+                                                    try {
+                                                        const item = window.MessagePack.decode(messageData);
+                                                        
+                                                        // TARGET: finalイベントかつPNG画像データの場合にパッチを試みる
+                                                        if (item && item.event_type === 'final' && item.image && item.image instanceof Uint8Array) {
+                                                            let patched = false;
+                                                            const imageData = item.image;
+                                                            
+                                                            if (imageData.length > 4 && imageData[0] === 137 && imageData[1] === 80 && imageData[2] === 78 && imageData[3] === 71) {
+                                                                debugLog('[PresetMgr] Final image is PNG. Attempting to patch...');
+                                                                const arrayBuffer = imageData.slice().buffer;
+                                                                const patchedBuffer = patchPng(arrayBuffer);
+
+                                                                if (patchedBuffer) {
+                                                                    console.log('[PresetMgr] PNG data patched successfully. Patched buffer length:', patchedBuffer.byteLength);
+                                                                    item.image = new Uint8Array(patchedBuffer);
+                                                                    const newPayload = window.MessagePack.encode(item);
+                                                                    const newMessageChunk = new Uint8Array(4 + newPayload.length);
+                                                                    writeUint32(newMessageChunk, 0, newPayload.length);
+                                                                    newMessageChunk.set(newPayload, 4);
+                                                                    
+                                                                    controller.enqueue(newMessageChunk);
+                                                                    patched = true;
+                                                                } else {
+                                                                    console.warn('[PresetMgr] patchPng returned null. No patch applied.');
+                                                                }
+                                                            } else {
+                                                                debugLog('[PresetMgr] Final image is not a PNG, skipping patch.');
+                                                            }
+                                                            
+                                                            if (!patched) {
+                                                                debugLog('[PresetMgr] Something went wrong, skipping patch.');
+                                                                controller.enqueue(messageChunk);
+                                                            }
+                                                        } else {
+                                                            // finalイベント以外は、元のバイナリデータをそのまま流す
+                                                            controller.enqueue(messageChunk);
+                                                        }
+                                                    } catch (e) {
+                                                        console.error('[PresetMgr] Failed to decode a message chunk, passing through. Error:', e);
+                                                        // デコードに失敗した場合でも、元のチャンクを流してストリームが壊れるのを防ぐ
+                                                        controller.enqueue(messageChunk);
+                                                    }
+                                                    // 処理した部分をバッファから削除
+                                                    buffer = buffer.subarray(4 + messageLength);
+                                                } else {
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        controller.close();
+                                    } catch (e) {
+                                        console.error('[PresetMgr] Error during stream parsing:', e);
+                                        controller.error(e);
+                                    }
+                                }
+                            });
+
+                            return new Response(transformStream, {
+                                status: res.status,
+                                statusText: res.statusText,
+                                headers: new Headers(res.headers),
+                            });
+                            
+                        } catch(e_stream){
+                            console.error('[PresetMgr] Error processing SSE stream:', e_stream);
+                            return res;
+                        }
+                    }
                     return res;
+
                 } else {
                     return origFetch.call(this, input, init);
                 }
@@ -925,8 +1038,7 @@ class JsonManager {
                         while (data[q] && q < p + 8 + originalLen) { // バッファオーバーランを防止
                             key += String.fromCharCode(data[q++]);
                         }
-
-                        // 'Description'キーの処理
+                        
                         if (key === 'Description' && raw.inputPrompt) {
                             debugLog('[PresetMgr] Found "tEXt" chunk with "Description" key.');
                             q++;
@@ -951,7 +1063,7 @@ class JsonManager {
                             data = out; // メインのバッファを更新
                             modified = true;
                         }
-                        // 'Comment'キーの処理
+                        
                         else if (key === 'Comment') {
                             debugLog('[PresetMgr] Found "tEXt" chunk with "Comment" key.');
                             q++;
