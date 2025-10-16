@@ -956,7 +956,7 @@ class JsonManager {
                                                                 const patchedBuffer = patchPng(arrayBuffer);
 
                                                                 if (patchedBuffer) {
-                                                                    console.log('[PresetMgr] PNG data patched successfully. Patched buffer length:', patchedBuffer.byteLength);
+                                                                    debugLog('[PresetMgr] PNG data patched successfully. Patched buffer length:', patchedBuffer.byteLength);
                                                                     item.image = new Uint8Array(patchedBuffer);
                                                                     const newPayload = window.MessagePack.encode(item);
                                                                     const newMessageChunk = new Uint8Array(4 + newPayload.length);
