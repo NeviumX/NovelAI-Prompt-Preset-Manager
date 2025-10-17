@@ -4,7 +4,7 @@
 // @namespace    https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
 // @version      1.0
 // @description  Script to replace __TOKEN__ with prompt anything you want before making a request to the API on the NovelAI. 
-// @description:ja NovelAIでAPIにリクエストする前に、__TOKEN__を任意のプロンプトに置き換えるスクリプトです。 
+// @description:ja NovelAI の API にリクエストを行う前に、__TOKEN__ を任意のプロンプトに置き換えるスクリプト。
 // @author       Gemini 2.5 Pro, ChatGPT o3, Nevium7
 // @copyright    Nevium7
 // @license      MIT
@@ -21,42 +21,42 @@
 // ==/UserScript==
 
 /* ----------  styles  ---------- */
-GM_addStyle(/* css */`
-    .nai-preset-panel         {background:#1b1b1b;border:1px solid #444;padding:8px 10px;margin-top:8px;border-radius:6px;font-size:13px;color:#f0f0f0}
-    .nai-preset-title         {font-weight:700;margin-bottom:4px}
-    .nai-preset-textarea      {width:100%;min-height:60px;padding:6px;border-radius:4px;border:1px solid #555;background:#141414;color:#f8f8f8;resize:vertical}
+GM_addStyle(`
+    .nai-preset-panel         {background: #0e0f21;border:1px solid rgb(34, 37, 63);padding: 5px 15px;font-size: 13px;color: #f0f0f0}
+    .nai-preset-title         {font-weight:700;margin-bottom:10px;font-size:14px;padding: 7px 5px 0px;}
+    .nai-preset-textarea      {width:100%;min-height:80px;max-height:300px;padding:6px;border-radius:4px;border:1px solid #0e0f21;background: #0e0f21;color: #f8f8f8;overflow-y: auto;}
     .nai-preset-controls      {display:flex;gap:6px;align-items:center;margin:6px 0}
-    .nai-preset-input         {flex:1 1 0;padding:4px 6px;border-radius:4px;border:1px solid #555;background:#141414;color:#f8f8f8}
-    .nai-btn                  {padding:4px 10px;border:1px solid #666;background:#222;color:#f8f8f8;border-radius:4px;cursor:pointer;font-weight:600}
+    .nai-preset-input         {flex:1 1 0;padding:4px 6px;border-radius:4px;border:2px solid #262946; ;background: #0e0f21;color: #f8f8f8}
+    .nai-btn                  {padding:4px 10px;border:1px solid rgb(34, 37, 63);background:#22253f;color:#f8f8f8;border-radius:4px;cursor:pointer;font-weight:600}
+    .nai-btn:hover            {background: #323658ff}
     .nai-preset-list          {display:flex;flex-wrap:wrap;gap:6px}
-    .nai-preset-item          {background:#242424;border:1px solid #444;padding:2px 6px;border-radius:4px;display:inline-flex;width:fit-content;max-width:100%;white-space:nowrap;gap:4px;align-items:center;}
-    .nai-preset-item input    {margin:0}
+    .nai-preset-item          {background: #22253f;border:1px solid rgb(34, 37, 63);padding:2px 6px;border-radius:4px;display:inline-flex;width:fit-content;max-width:100%;white-space:nowrap;gap:4px;align-items:center;cursor: pointer;transition: border-color 0.3s ease;user-select: none;}
+    .nai-preset-item input    {margin:0;accent-color: #f5f3c2;}
+    .nai-preset-item:hover    {border-color: #f5f3c2;}
     .nai-btn-remove           {display:none;border:none;background:none;color:#dd6666;font-size:15px;cursor:pointer;line-height:1}
     .nai-btn-toggle           {width:26px;padding:4px 0;font-weight:700}
     .nai-gear-wrap            {position:absolute; top:6px; right:6px}
-    .nai-gear-btn             {width:20px;height:20px;cursor:pointer;border:none;background:none;padding:0;
+    .nai-gear-btn             {width:26px;height:26px;cursor:pointer;border:none;background:none;padding:0;
                                 display:flex;align-items:center;justify-content:center;border-radius:2px;
-                                color:#bbb;transition:background .15s}
-    .nai-gear-btn:hover       {background:#333;color:#fff}
+                                color:#f8f8f8;}
     .nai-popup                {position:absolute;
                                 bottom:100%;
                                 right:0;
                                 margin-bottom:8px;
                                 width:200px; padding:10px;
-                                background:#222; border:1px solid #555; border-radius:4px; color:#eee;
+                                background:#13152c; border:2px solid #262946; border-radius:4px; color:#eee;
                                 display:none; z-index:2147483647;}
     .nai-popup:before         {content:'';position:absolute;bottom:-6px;right:14px;
                                border:6px solid transparent;
                                border-top-color:#555;}
     .nai-remain-row           {margin-top:6px;display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;float:left}
     .nai-remain-row input[type="checkbox"] { margin: 6px; accent-color: #f5f3c2; }
-    .nai-suggest-box          {position:fixed; z-index:2147483647; background:#222; border:1px solid #555;
+    .nai-suggest-box          {position:fixed; z-index:2147483647; background:#191b31; border:2px solid #262946;
                                 border-radius:4px; max-height:180px; overflow-y:auto; font-size:13px; color:#eee}
-    .nai-suggest-item         {padding:4px 8px; cursor:pointer}
-    .nai-suggest-item.active  {background-color: #444}
+    .nai-suggest-item         {padding:4px 8px; cursor:pointer; border:1px solid rgb(34, 37, 63); border-radius:4px; transition: border-color 0.3s ease, background-color 0.3s ease;}
+    .nai-suggest-item.active  {background-color: #323658ff; border-color: #f5f3c2; transition: background-color 0.3s ease, border-color 0.3s ease;}
     @keyframes Flash          {0%{background:#444} 100%{background:#242424}}
     `);
-
 
 // ブラウザストレージ保存用定数
 const PREFIX = 'naiPromptPreset:';
@@ -124,13 +124,19 @@ class UIManager {
         panel.className = 'nai-preset-panel';
         panel.style.position = 'relative';
 
+        /* auto-resizing text area*/
+        const autoResizeTextarea = (ta) => {
+            ta.style.height = 'auto';
+            ta.style.height = (ta.scrollHeight + 2) + 'px';
+        };
+
         /* title */
         panel.innerHTML = `
         <div class="nai-preset-title">Prompt Preset / Wildcards Manager</div>
         <!-- 歯車 -->
         <div class="nai-gear-wrap">
             <button class="nai-gear-btn" title="Settings">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M19.14 12.94a7.93 7.93 0 0 0 .05-.94 7.93 7.93 0 0 0-.05-.94l2.11-1.65a.5.5 0 0 0 .12-.65l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.2 7.2 0 0 0-1.63-.94l-.38-2.65A.5.5 0 0 0 13.7 3h-3.4a.5.5 0 0 0-.49.41l-.38 2.65a7.2 7.2 0 0 0-1.63.94l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.65l2.11 1.65c-.04.31-.05.63-.05.94s.01.63.05.94l-2.11 1.65a.5.5 0 0 0-.12.65l2 3.46c.13.23.39.32.6.22l2.49-1c.5.4 1.05.72 1.63.94l.38 2.65c.05.24.25.41.49.41h3.4c.24 0 .44-.17.49-.41l.38-2.65c.58-.22 1.13-.54 1.63-.94l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.65l-2.11-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/>
             </svg>
         </button>
@@ -161,13 +167,17 @@ class UIManager {
         <textarea class="nai-preset-textarea" placeholder="masterpiece, best quality, oil painting (medium)"></textarea>
 
         <div class="nai-preset-controls">
-            <input  class="nai-preset-input"  placeholder="Preset name (Do not contain '__' and space)">
+            <input  class="nai-preset-input" placeholder="Preset name (Do not include '__' and space)">
             <button class="nai-btn nai-btn-add">ADD</button>
             <button class="nai-btn nai-btn-clear">CLEAR</button>
             <button class="nai-btn nai-btn-toggle">▴</button>
         </div>
 
         <div class="nai-preset-list"></div>`;
+
+        /* auto-resize on input */
+        const textarea = panel.querySelector('.nai-preset-textarea');
+        textarea.addEventListener('input', () => autoResizeTextarea(textarea));
 
         /* preset data list */
         const list = panel.querySelector('.nai-preset-list');
@@ -191,7 +201,7 @@ class UIManager {
                 alert(
                     '[NovelAI Prompt Preset Manager]\n' +
                     'ERROR: Do not use double-underscore (__) to the preset name.\n\n' +
-                    'This symbol should only be used to enclose actual tokens.'
+                    'This symbol should only be used to enclose actual preset tokens.'
                 );
                 return;
             }
@@ -219,8 +229,10 @@ class UIManager {
 
         /* CLEAR button (clears textarea and preset name) */
         panel.querySelector('.nai-btn-clear').onclick = () => {
-            panel.querySelector('.nai-preset-textarea').value = '';
+            const ta = panel.querySelector('.nai-preset-textarea');
+            ta.value = '';
             panel.querySelector('.nai-preset-input').value = '';
+            autoResizeTextarea(ta);
         };
 
         /* toggle textarea visibility */
@@ -243,6 +255,7 @@ class UIManager {
                     const presetText = GM_getValue(PREFIX + name, '');
                     const ta = panel.querySelector('.nai-preset-textarea');
                     ta.value = presetText;
+                    autoResizeTextarea(ta);
                     //ta.value = ta.value ? `${ta.value.replace(/\s+$/, '')}, ${presetText}` : presetText;
                     const nameBox = panel.querySelector('.nai-preset-input');
                     nameBox.value = name;
@@ -951,7 +964,7 @@ class JsonManager {
                                                             const imageData = item.image;
                                                             
                                                             if (imageData.length > 4 && imageData[0] === 137 && imageData[1] === 80 && imageData[2] === 78 && imageData[3] === 71) {
-                                                                debugLog('[PresetMgr] Final image is PNG. Attempting to patch...');
+                                                                debugLog('[PresetMgr] Final image is detected. Attempting to patch...');
                                                                 const arrayBuffer = imageData.slice().buffer;
                                                                 const patchedBuffer = patchPng(arrayBuffer);
 
