@@ -1,9 +1,21 @@
 # NovelAI Prompt Preset / Wildcards Manager
 
 A userscript for novelai.net/image that allows you to manage and use prompt presets. It can also format multi-line presets into a special pipe-separated string, useful for certain prompting techniques or organizational purposes. Streamline your workflow by replacing simple `__tokens__` with extensive prompts, character designs, or these specially formatted strings.  
-![main panel](img/main-panel.png)  
 
 [![Install with GreasyFork](https://img.shields.io/badge/Install%20with-GreasyFork-green.svg)](https://update.greasyfork.org/scripts/537842/NovelAI%20Prompt%20Preset%20%20Wildcards%20Manager.user.js)
+
+## Demo
+### Easy Preset Management
+![main panel demo](img/main-panel-demo.gif)  
+
+### Simple Suggestion Feature (Press Space or Shift+Space)
+![suggest demo](img/suggest-demo.gif) 
+
+### Replacing Preset Token
+![api req demo](img/api-req-demo.gif)
+
+### Optionally Rewrite Metadata
+![metadata demo](img/meta-demo.gif) 
 
 ## Features
 
