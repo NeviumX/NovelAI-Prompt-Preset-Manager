@@ -41,6 +41,7 @@ GM_addStyle(`
     .nai-btn-toggle           {width:26px;padding:4px 0;font-weight:700}
     .nai-gear-wrap            {position:absolute; top:6px; right:6px}
     .nai-gear-btn             {width:26px;height:26px;cursor:pointer;border:none;background:none;padding:0;display:flex;align-items:center;justify-content:center;border-radius:2px;color:#f8f8f8}
+    .nai-gear-btn.active      {color:#e7f3c2;}
     .nai-popup                {position:absolute;bottom:100%;right:0;margin-bottom:8px;width:200px;padding:10px;background:#13152c;border:2px solid #262946;border-radius:4px;color:#eee;display:none;z-index:2147483647}
     .nai-popup:before         {content:'';position:absolute;bottom:-6px;right:14px;border:6px solid transparent;border-top-color:#262946}
     .nai-remain-row           {margin-top:6px;display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;float:left}
@@ -48,6 +49,9 @@ GM_addStyle(`
     .nai-suggest-box          {position:fixed;z-index:2147483647;background:#191b31;border:2px solid #262946;border-radius:4px;max-height:180px;overflow-y:auto;font-size:13px;color:#eee}
     .nai-suggest-item         {padding:4px 8px;cursor:pointer;border:1px solid rgb(34,37,63);border-radius:4px;transition:border-color .3s ease,background-color .3s ease}
     .nai-suggest-item.active  {background-color:#323658ff;border-color:#f5f3c2;transition:background-color .3s ease,border-color .3s ease}
+    .nai-popup-header         {display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;}
+    .nai-info-btn             {display:inline-flex;align-items:center;justify-content:center;color:#f8f8f8;opacity:0.6;transition:opacity .2s ease;}
+    .nai-info-btn:hover       {opacity:1;}
     @keyframes Flash          {0%{background:#444} 100%{background:#242424}}
     `);
 
@@ -128,7 +132,14 @@ class UIManager {
             </button>
             </div>
             <div class="nai-popup">
-                <h3 style="margin:0 0 10px;font-size:16px">Settings</h3>
+                <div class="nai-popup-header">
+                    <h3 style="margin:0;font-size:16px">Settings</h3>
+                    <a href="https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager?tab=readme-ov-file#features" title="About this script" target="_blank" class="nai-info-btn">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                        </svg>
+                    </a>
+                </div>
                 <button class="nai-btn nai-set-import" style="width:100%;margin-bottom:8px">Import Preset</button>
                 <button class="nai-btn nai-set-export" style="width:100%;margin-bottom:8px">Export Preset</button>
                 <button class="nai-btn nai-set-clear"  style="width:100%;color:red">Clear All Preset</button>
@@ -303,7 +314,9 @@ class UIManager {
         const popup   = panel.querySelector('.nai-popup');
         gearBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            popup.style.display = popup.style.display === 'block' ? 'none' : 'block';
+            const isActive = popup.style.display === 'block';
+            popup.style.display = isActive ? 'none' : 'block';
+            gearBtn.classList.toggle('active', !isActive);
         });
 
         const importBtn = panel.querySelector('.nai-set-import');
@@ -376,7 +389,10 @@ class UIManager {
         });
 
         this._onDocClick = (e)=>{
-            if (!panel.contains(e.target)) popup.style.display = 'none';
+            if (!panel.contains(e.target)) {
+                popup.style.display = 'none';
+                gearBtn.classList.remove('active');
+            }
         };
         document.addEventListener('click', this._onDocClick, false);
 
