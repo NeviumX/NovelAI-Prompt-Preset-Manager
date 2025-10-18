@@ -2,7 +2,7 @@
 // @name         NovelAI Prompt Preset / Wildcards Manager
 // @name:ja      NovelAI Prompt Preset / Wildcards Manager
 // @namespace    https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
-// @version      1.1
+// @version      1.2
 // @description  Script to replace __TOKEN__ with prompt anything you want before making a request to the API on the NovelAI. 
 // @description:ja NovelAI の API にリクエストを行う前に、__TOKEN__ を任意のプロンプトに置き換えるスクリプト。
 // @author       Gemini 2.5 Pro, ChatGPT o3, Nevium7
