@@ -31,7 +31,7 @@ GM_addStyle(`
     .newline-char             {display:inline-block;color:#dd6666;background:rgba(221,102,102,0.1);border:1px solid rgba(221,102,102,0.5);border-radius:3px;font-weight:bold;padding:0 3px;line-height:1;font-size:12px;vertical-align:middle;user-select:none;}
     .nai-preset-controls      {display:flex;gap:6px;align-items:center;margin:6px 0}
     .nai-preset-input         {flex:1 1 0;padding:4px 6px;border-radius:4px;border:2px solid #262946;background:#0e0f21;color:#f8f8f8}
-    .nai-btn                  {padding:4px 10px;border:1px solid rgb(34, 37, 63);background:#22253f;color:#f8f8f8;border-radius:4px;cursor:pointer;font-weight:600}
+    .nai-btn                  {padding:4px 10px;border:1px solid rgb(34, 37, 63);background: #22253f;color: #f8f8f8;border-radius:4px;cursor:pointer;font-weight:600}
     .nai-btn:hover            {background: #323658ff}
     .nai-preset-list          {display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;}
     .nai-preset-item          {background:#22253f;border:1px solid rgb(34,37,63);padding:2px 6px;border-radius:4px;display:inline-flex;width:fit-content;max-width:100%;white-space:nowrap;gap:4px;align-items:center;cursor:pointer;transition:border-color .3s ease;user-select:none}
@@ -48,11 +48,17 @@ GM_addStyle(`
     .nai-remain-row input[type="checkbox"] { margin: 6px; accent-color: #f5f3c2; }
     .nai-suggest-box          {position:fixed;z-index:2147483647;background:#191b31;border:2px solid #262946;border-radius:4px;max-height:180px;overflow-y:auto;font-size:13px;color:#eee}
     .nai-suggest-item         {padding:4px 8px;cursor:pointer;border:1px solid rgb(34,37,63);border-radius:4px;transition:border-color .3s ease,background-color .3s ease}
-    .nai-suggest-item.active  {background-color:#323658ff;border-color:#f5f3c2;transition:background-color .3s ease,border-color .3s ease}
+    .nai-suggest-item.active  {background-color: #323658ff;border-color: #f5f3c2;transition:background-color .3s ease,border-color .3s ease}
     .nai-popup-header         {display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;}
     .nai-info-btn             {display:inline-flex;align-items:center;justify-content:center;color:#f8f8f8;opacity:0.6;transition:opacity .2s ease;}
     .nai-info-btn:hover       {opacity:1;}
-    @keyframes Flash          {0%{background:#444} 100%{background:#242424}}
+    .nai-preset-search        {display:flex;gap:6px;align-items:center;margin-top:6px;}
+    .nai-preset-search-box    {flex:1 1 0;padding:4px 6px;border-radius:4px;border:2px solid #262946;background:#0e0f21;color:#f8f8f8}
+    .nai-preset-search-button {width:26px;cursor:pointer;padding:4px 0;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#f8f8f8;}
+    .nai-btn-list-toggle      {width:26px;padding:4px 0;font-weight:700}
+    .nai-btn:focus-visible:not([data-mouse-clicked]), .nai-preset-search-button:focus-visible:not([data-mouse-clicked]), .nai-gear-btn:focus-visible:not([data-mouse-clicked]), .nai-btn-remove:focus-visible:not([data-mouse-clicked]), .nai-preset-panel input[type="checkbox"]:focus-visible:not([data-mouse-clicked]) {outline:2px solid #f5f3c2; outline-offset:1px; border-radius:4px;}
+    @keyframes Flash          {0%{background: #f5f3c2} 100%{background: #22253f}}
+    @keyframes Flash-Err      {0%{background: rgba(221,102,102,0.5)} 100%{background: #22253f}}
     `);
 
 // ブラウザストレージ保存用定数
@@ -160,13 +166,23 @@ class UIManager {
             </div>
 
             <div class="nai-preset-controls">
-                <input  class="nai-preset-input" placeholder="Preset name (Do not include '__' and space)">
+                <input  class="nai-preset-input" placeholder="Preset name">
                 <button class="nai-btn nai-btn-add">ADD</button>
                 <button class="nai-btn nai-btn-clear">CLEAR</button>
                 <button class="nai-btn nai-btn-toggle">▴</button>
             </div>
 
             <div class="nai-preset-list"></div>
+
+            <div class="nai-preset-search">
+                <input class="nai-preset-search-box" placeholder="Filter presets...">
+                <button class="nai-btn nai-preset-search-button">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                </button>
+                <button class="nai-btn nai-btn-list-toggle">▴</button>
+            </div>
         `;
 
         const textarea = panel.querySelector('.nai-preset-textarea');
@@ -220,13 +236,21 @@ class UIManager {
             });
 
         /* ADD button */
-        panel.querySelector('.nai-btn-add').onclick = () => {
+        const addBtn = panel.querySelector('.nai-btn-add');
+        addBtn.onclick = () => {
+            const btnFlashErr = () => {
+                addBtn.style.animation = 'Flash-Err 0.4s';
+                setTimeout(() => addBtn.style.animation = '', 400);
+            }
             const name = panel.querySelector('.nai-preset-input').value.trim();
-            if (!name) return;
+            if (!name) { btnFlashErr(); return; }
+
             const validationRe = /^[A-Za-z0-9_.-]+$/;
-            if (!validationRe.test(name)) return;
+            if (!validationRe.test(name)) { btnFlashErr(); return; }
+
             const presetText = panel.querySelector('.nai-preset-textarea').value;
-            if (!presetText) return;
+            if (!presetText) { btnFlashErr(); return; }
+
             if (name.includes('__')) {
                 alert(
                     '[NovelAI Prompt Preset Manager]\n' +
@@ -235,6 +259,7 @@ class UIManager {
                 );
                 return;
             }
+
             const key = PREFIX + name;
             const alreadyExists = GM_getValue(key, null) !== null;
             GM_setValue(key, presetText);
@@ -247,6 +272,8 @@ class UIManager {
                 }
             } else {
                 list.appendChild(this.makeListItem(name));
+                addBtn.style.animation = 'Flash 0.4s';
+                setTimeout(() => addBtn.style.animation = '', 400);
             }
             this.jsonMgr.updateDict();
             panel.querySelector('.nai-preset-input').value = '';
@@ -310,6 +337,35 @@ class UIManager {
             this.jsonMgr.updateDict();
         });
 
+        /* preset search handler */
+        const searchBox = panel.querySelector('.nai-preset-search-box');
+        const searchBtn = panel.querySelector('.nai-preset-search-button');
+
+        const filterPresets = () => {
+            const searchTerm = searchBox.value.toLowerCase().trim();
+            const presetItems = list.querySelectorAll('.nai-preset-item');
+            presetItems.forEach(item => {
+                const presetName = item.querySelector('span').textContent.toLowerCase();
+                if (presetName.includes(searchTerm)) {
+                    item.style.display = 'inline-flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        };
+
+        searchBox.addEventListener('input', filterPresets);
+        searchBtn.addEventListener('click', filterPresets);
+
+        /* toggle preset list visibility */
+        panel.querySelector('.nai-btn-list-toggle').onclick = (e) => {
+            const presetList = panel.querySelector('.nai-preset-list');
+            const hidden = presetList.style.display === 'none';
+            presetList.style.display = hidden ? '' : 'none';
+            e.target.textContent = hidden ? '▴' : '▾';
+        };
+
+        /* settings popup */
         const gearBtn = panel.querySelector('.nai-gear-btn');
         const popup   = panel.querySelector('.nai-popup');
         gearBtn.addEventListener('click', (e) => {
@@ -409,6 +465,22 @@ class UIManager {
             GM_setValue(DEBUG_MODE_TRG, debugChk.checked);
             window.dispatchEvent(new CustomEvent('naiDebugUpdate', {detail: debugChk.checked}))
         });
+        /* focus-visible handling */
+        const focusableSelector = '.nai-btn, .nai-preset-search-button, .nai-gear-btn, .nai-preset-panel input[type="checkbox"], .nai-btn-remove';
+
+        panel.addEventListener('mousedown', (e) => {
+            const target = e.target.closest(focusableSelector);
+            if (target) {
+                target.setAttribute('data-mouse-clicked', 'true');
+            }
+        }, true);
+
+        panel.addEventListener('blur', (e) => {
+            const target = e.target.closest(focusableSelector);
+            if (target) {
+                target.removeAttribute('data-mouse-clicked');
+            }
+        }, true);
 
         return panel;
     }
