@@ -112,12 +112,10 @@ class UIManager {
     }
     destroy(){
         if (!this.panel) return;
-        /* gear のポップアップのクリックハンドラを外す */
         if (this._onDocClick){
             document.removeEventListener('click', this._onDocClick, false);
             this._onDocClick = null;
         }
-        /* パネルDOMを除去 */
         if (this.panel.isConnected) this.panel.remove();
         this.panel = null;
     }
@@ -224,7 +222,7 @@ class UIManager {
             updateOverlay();
         });
         textarea.addEventListener('scroll', syncScroll);
-        updateOverlay(); // 初期表示
+        updateOverlay();
 
         /* preset data list */
         const list = panel.querySelector('.nai-preset-list');
@@ -440,7 +438,7 @@ class UIManager {
                 .filter(k => k.startsWith(PREFIX))
                 .forEach(k => GM_deleteValue(k));
             list.innerHTML = '';
-            alert('[NovelAI Prompt Preset Manager]\nAll presets cleared.');
+            alert('[NovelAI Prompt Preset Manager]\nAll presets deleted.');
             this.jsonMgr.updateDict();
         });
 
@@ -465,6 +463,7 @@ class UIManager {
             GM_setValue(DEBUG_MODE_TRG, debugChk.checked);
             window.dispatchEvent(new CustomEvent('naiDebugUpdate', {detail: debugChk.checked}))
         });
+
         /* focus-visible handling */
         const focusableSelector = '.nai-btn, .nai-preset-search-button, .nai-gear-btn, .nai-preset-panel input[type="checkbox"], .nai-btn-remove';
 
@@ -512,7 +511,6 @@ class SuggestionManager {
         document.body.appendChild(div);
         return div;
     }
-    /* サジェストボックスのイベントをバインド */
     bind() {
         this._updateHandler = () => this.update();
         this._navHandler = (e) => this.nav(e);
@@ -520,7 +518,7 @@ class SuggestionManager {
         this._mousedownHandler = (e) => {
             if (e.target.classList.contains('nai-suggest-item')) {
                 e.preventDefault();
-                this.choose(e.target, e.shiftKey); //Shiftキーの状態を渡す
+                this.choose(e.target, e.shiftKey);
             }
         };
         this._mouseoverHandler = (e) => {
@@ -539,7 +537,6 @@ class SuggestionManager {
         this.box.addEventListener('mouseover', this._mouseoverHandler);
         document.addEventListener('keydown', this._escapeKeyHandler);
     }
-    /* caret 左側文字列を取得 */
     textBeforeCaret() {
         const sel = window.getSelection();
         if (!sel || !sel.anchorNode || !this.editor.contains(sel.anchorNode)) return '';
@@ -548,12 +545,11 @@ class SuggestionManager {
         rng.setStart(this.editor, 0);
         return rng.toString();
     }
-    /* 候補計算 & 表示 */
     update() {
         const txt  = this.textBeforeCaret();
         const dict = this.jsonMgr.getDict();
 
-        /* 1) __foo__bar → 値候補 */
+        /* __foo__bar → 値候補 */
         const mVal = txt.match(/__([A-Za-z0-9_-]+)__(\w*)$/);
         if (mVal && dict[mVal[1]]) {
         const [ , key, part ] = mVal;
@@ -565,7 +561,7 @@ class SuggestionManager {
         if (list.length) return this.render(list.map(t => ({type:'value', text:t, originalKey: key })));
         }
 
-        /* 2) __foo → トークン候補 */
+        /* __foo → トークン候補 */
         const mTok = txt.match(/__([A-Za-z0-9_-]*)$/);
         if (mTok) {
             const prefix = mTok[1].toLowerCase();
@@ -576,7 +572,6 @@ class SuggestionManager {
         }
         this.hide();
     }
-    /* 候補を表示 */
     render(items) {
         this.box.innerHTML = '';
         items.forEach((itemData) => {
@@ -602,7 +597,6 @@ class SuggestionManager {
             this.hide();
         }
     }
-    /* ↑↓ Tab Space (Shift+Space対応) */
     nav(e) {
         if (this.box.style.display === 'none') return;
         const items = [...this.box.children];
@@ -610,20 +604,19 @@ class SuggestionManager {
 
         if (e.key === 'ArrowDown') { e.preventDefault(); this.selIdx = (this.selIdx + 1) % items.length; }
         if (e.key === 'ArrowUp') { e.preventDefault(); this.selIdx = (this.selIdx - 1 + items.length) % items.length; }
-        if (e.key === 'Tab' || e.key === ' ') { // Spaceキーの場合、Shiftキーの状態も渡す
+        if (e.key === 'Tab' || e.key === ' ') {
             e.preventDefault();
             this.choose(items[this.selIdx], e.shiftKey);
         }
         this.highlight();
     }
-    /* 候補を選択して置換 */
     choose(itemElement, shiftPressed = false) {
         const sel = window.getSelection();
         if (!sel || !sel.rangeCount) return this.hide();
 
         const fullTextBeforeCaret = this.textBeforeCaret();
         const itemType = itemElement.dataset.type;
-        const suggestionText = itemElement.textContent; // サジェストボックスに表示されているテキスト
+        const suggestionText = itemElement.textContent;
 
         let textToInsert = "";
         let charactersToDelete = 0;
@@ -640,7 +633,6 @@ class SuggestionManager {
             } else {
                 charactersToDelete = 0;
             }
-            /** Shiftキーが押された場合 */
             if (shiftPressed) {
                 const presetName = itemElement.dataset.originalKey;
                 const presetContent = this.jsonMgr.getDict()[presetName];
@@ -649,14 +641,13 @@ class SuggestionManager {
                         // 改行があればランダムプロンプト形式に加工
                         textToInsert = '||' + presetContent.replace(newlineReplaceRegex, '|') + '||';
                     } else {
-                        textToInsert = presetContent;
+                        textToInsert = presetContent + ', ';
                     }
                 } else {
-                    textToInsert = suggestionText;
+                    textToInsert = suggestionText + ', ';
                 }
             } else {
-                // 通常のトークン選択 (Tab または Spaceのみ)
-                textToInsert = suggestionText;
+                textToInsert = suggestionText + ', ';
             }
         } else if (itemType === 'token') {
             const tokenTriggerRegex = /__([A-Za-z0-9_.-]*)$/;
@@ -675,7 +666,6 @@ class SuggestionManager {
                     charactersToDelete = 0;
                 }
             }
-            /** Shiftキーが押された場合 */
             if (shiftPressed) {
                 const presetName = suggestionText.slice(2, -2);
                 const presetContent = this.jsonMgr.getDict()[presetName];
@@ -684,14 +674,13 @@ class SuggestionManager {
                         // 改行があればランダムプロンプト形式に加工
                         textToInsert = '||' + presetContent.replace(newlineReplaceRegex, '|') + '||';
                     } else {
-                        textToInsert = presetContent;
+                        textToInsert = presetContent + ', ';
                     }
                 } else {
-                    textToInsert = suggestionText;
+                    textToInsert = suggestionText + ', ';
                 }
             } else {
-                // 通常のトークン選択 (Tab または Spaceのみ)
-                textToInsert = suggestionText;
+                textToInsert = suggestionText + ', ';
             }
         }
         if (charactersToDelete > 0 || textToInsert) {
@@ -700,13 +689,11 @@ class SuggestionManager {
         }
         this.hide();
     }
-    /* 選択中の候補をハイライト */
     highlight() {
         const items = [...this.box.children];
         items.forEach((d,i)=> {
             d.classList.toggle('active', i===this.selIdx);
         });
-        // 自動スクロール
         if (items.length > 0 && this.selIdx >= 0 && this.selIdx < items.length) {
             const selectedItem = items[this.selIdx];
             const box = this.box;
@@ -723,9 +710,7 @@ class SuggestionManager {
             }
         }
     }
-    /* 選択を解除して非表示 */
     hide() { this.box.style.display = 'none'; this.selIdx = -1; }
-    /** 生成した要素・リスナを片付けてインスタンスを無効化 */
     destroy() {
         this.editor.removeEventListener('input', this._updateHandler);
         this.editor.removeEventListener('keydown', this._navHandler);
@@ -794,7 +779,6 @@ class PromptBoxObserver {
     }
     attach(root){
         const prev = this.map.get(root);
-        /* パネルが消えていれば破棄して作り直す */
         if (prev && !prev.panel?.isConnected) {
             prev.destroy();
             this.map.delete(root);
@@ -838,7 +822,7 @@ class JsonManager {
         this._dictCache  = this.buildDict();
         this.installPatch();
     }
-    /* GM_storage → {TOKEN: "value"} へ変換 */
+    /* GM_storage → {TOKEN: "value"} */
     buildDict() {
         const dict = {};
         GM_listValues()
@@ -927,7 +911,6 @@ class JsonManager {
                         debugLog('[PresetMgr] No changes in body, skipping patching.'); 
                         return origFetch.call(this, input, init);
                     }
-
                     let finalInput, finalInit;
                     if (typeof input === 'string') {
                         finalInput = input;
@@ -944,7 +927,6 @@ class JsonManager {
                         try {
                             const zipBuffer = await res.clone().arrayBuffer();
                             debugLog('[PresetMgr] Got zipBuffer, length:', zipBuffer.byteLength);
-
                             if (typeof window.JSZip === 'undefined') {
                                 console.error('[PresetMgr] window.JSZip is undefined. Cannot process ZIP.');
                                 return res;
@@ -953,10 +935,8 @@ class JsonManager {
                             const zip = await window.JSZip.loadAsync(zipBuffer);
                             debugLog('[PresetMgr] ZIP loaded. Searching for PNG file...');
                             const pngFile = zip.file(/image_\\d+\\.png/)[0];
-
                             if (pngFile) {
                                 debugLog('[PresetMgr] Found PNG in ZIP:', pngFile.name);
-
                                 try {
                                     debugLog('[PresetMgr] Attempting pngFile.async("arraybuffer")...');
                                     // Promiseを一度変数に受けてからawaitする
@@ -985,7 +965,6 @@ class JsonManager {
                                     const errorFallbackResponse = new Response(zipBuffer, { status: res.status, statusText: res.statusText, headers: res.headers });
                                     return errorFallbackResponse;
                                 }
-
                             } else {
                                 errorLog('[PresetMgr] No PNG file found in the ZIP. Returning original response.');
                             }
@@ -1004,13 +983,10 @@ class JsonManager {
                                 console.error('[PresetMgr] Response body is null. Cannot decode stream.');
                                 return res;
                             }
-
-                            // データを解析し、加工した上で返すための新しいストリームを作成
                             const transformStream = new ReadableStream({
                                 async start(controller) {
                                     const reader = res.body.getReader();
                                     let buffer = new Uint8Array(0);
-
                                     try {
                                         while (true) {
                                             const { value, done } = await reader.read();
@@ -1025,7 +1001,7 @@ class JsonManager {
                                                 const messageLength = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
                                                 
                                                 if (buffer.length >= 4 + messageLength) {
-                                                    const messageChunk = buffer.subarray(0, 4 + messageLength); // ヘッダ含む元のバイナリ塊
+                                                    const messageChunk = buffer.subarray(0, 4 + messageLength); // ヘッダ含む元のバイナリ
                                                     const messageData = buffer.subarray(4, 4 + messageLength);  // データ本体
                                                     
                                                     try {
@@ -1057,21 +1033,17 @@ class JsonManager {
                                                             } else {
                                                                 debugLog('[PresetMgr] Final image is not a PNG, skipping patch.');
                                                             }
-                                                            
                                                             if (!patched) {
                                                                 debugLog('[PresetMgr] Something went wrong, skipping patch.');
                                                                 controller.enqueue(messageChunk);
                                                             }
                                                         } else {
-                                                            // finalイベント以外は、元のバイナリデータをそのまま流す
                                                             controller.enqueue(messageChunk);
                                                         }
                                                     } catch (e) {
                                                         console.error('[PresetMgr] Failed to decode a message chunk, passing through. Error:', e);
-                                                        // デコードに失敗した場合でも、元のチャンクを流してストリームが壊れるのを防ぐ
                                                         controller.enqueue(messageChunk);
                                                     }
-                                                    // 処理した部分をバッファから削除
                                                     buffer = buffer.subarray(4 + messageLength);
                                                 } else {
                                                     break;
@@ -1085,7 +1057,6 @@ class JsonManager {
                                     }
                                 }
                             });
-
                             return new Response(transformStream, {
                                 status: res.status,
                                 statusText: res.statusText,
@@ -1098,12 +1069,10 @@ class JsonManager {
                         }
                     }
                     return res;
-
                 } else {
                     return origFetch.call(this, input, init);
                 }
             };
-
             /*── PNG書き換えとバイナリヘルパー関数 ──*/
             function patchPng(arrayBuf) {
                 debugLog('[PresetMgr] Patching PNG metadata...');
@@ -1192,13 +1161,11 @@ class JsonManager {
                     // 更新された可能性のあるチャンクの長さを使ってポインタを進める
                     p += 12 + readUint32(data, p);
                 }
-
                 if (modified) {
                     console.log('[NovelAI Prompt Preset Manager] PNG metadata patching finished.');
-                    window.__naiLastPromptData = null; // すべての処理が終わったのでクリア
+                    window.__naiLastPromptData = null;
                     return data.buffer;
                 }
-
                 debugLog('[PresetMgr] Target chunk (tEXt with Comment or Description) not found.');
                 return null;
             }
@@ -1221,14 +1188,12 @@ class JsonManager {
         scr.remove();
         console.log('[NovelAI Prompt Preset Manager] Patches installed to handle JSON/PNG.');
     }
-    /* プリセット辞書を更新する */
     updateDict() {
-        this._dictCache = this.buildDict(); //キャッシュを更新
+        this._dictCache = this.buildDict();
         window.dispatchEvent(
             new CustomEvent('naiPresetUpdate', { detail: this._dictCache })
         );
     }
-    /* キャッシュされた辞書を返す */
     getDict() {
         return this._dictCache;
     }
