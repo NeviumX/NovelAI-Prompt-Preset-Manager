@@ -98,10 +98,8 @@ class UIManager {
         this.jsonMgr = jsonManagerSingleton;
     }
     injectUI(root) {
+        // TODO: モバイルとPCのUIに重複してインジェクトするよりwindow.innerwidthで条件分岐して付け替えたりした方がいいのかもしれない
         const panelID = 'nai-preset-panel-injected';
-        const existed = document.getElementById(panelID);
-        if (existed) return existed;
-
         if(root) {
             const panel = this.createPresetManagerUI();
             panel.id = panelID;
@@ -750,13 +748,9 @@ class ProseMirrorObserver {
         muts.forEach(m=>{
             m.addedNodes.forEach(n=>{
                 if (n.nodeType!==1) return;
-                let i = 0;
                 const elementsSet = new Set(n.querySelectorAll?.('div.ProseMirror[contenteditable]'));
                 if(elementsSet && elementsSet.size !== 0) {
-                    elementsSet.forEach(el=>{
-                        // this is so annoying
-                        if (!this.map.has(el) && i < Math.round(elementsSet.size/2) ) { this.attach(el); i++;}
-                    });
+                    elementsSet.forEach(el=>{this.attach(el); });
                     elementsSet.clear();
                 } else return;
             });
@@ -783,10 +777,10 @@ class PromptBoxObserver {
             prev.destroy();
             this.map.delete(root);
         }
-        if (!this.map.has(root)) {
+        else if (!this.map.has(root)) {
             const ui = new UIManager(root);
             this.map.set(root, ui);
-            console.log('[NovelAI Prompt Preset Manager] UI attached.', root);
+            //console.log('[NovelAI Prompt Preset Manager] UI attached.', root);
         }
     }
     detach(root){
@@ -794,7 +788,7 @@ class PromptBoxObserver {
         if (!ui) return;
         ui.destroy();
         this.map.delete(root);
-        console.log('[NovelAI Prompt Preset Manager] UI detached.', root);
+        //console.log('[NovelAI Prompt Preset Manager] UI detached.', root);
     }
     handle(muts){
         muts.forEach(m=>{
@@ -802,10 +796,7 @@ class PromptBoxObserver {
             m.addedNodes.forEach(n=>{
                 if (n.nodeType!==1) return;
                 n.querySelectorAll?.('.prompt-input-box-prompt,.prompt-input-box-プロンプト,.prompt-input-box-ベースプロンプト,.prompt-input-box-base-prompt'
-                    ).forEach(el=>{
-                        // this is so annoying
-                        if (!this.map.has(el) && i==0 ) { this.attach(el); i++; }
-                });
+                    ).forEach(el=>{ this.attach(el); });
             });
             m.removedNodes.forEach(n=>{
                 if (n.nodeType!==1) return;
