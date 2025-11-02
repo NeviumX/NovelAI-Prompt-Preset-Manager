@@ -46,6 +46,7 @@ GM_addStyle(`
     .nai-popup:before         {content:'';position:absolute;bottom:-6px;right:14px;border:6px solid transparent;border-top-color:#262946}
     .nai-remain-row           {margin-top:6px;display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;float:left}
     .nai-remain-row input[type="checkbox"] { margin: 6px; accent-color: #f5f3c2; }
+    .nai-remain-row:hover     { cursor: pointer; }
     .nai-suggest-box          {position:fixed;z-index:2147483647;background:#191b31;border:2px solid #262946;border-radius:4px;max-height:180px;overflow-y:auto;font-size:13px;color:#eee}
     .nai-suggest-item         {padding:4px 8px;cursor:pointer;border:1px solid rgb(34,37,63);border-radius:4px;transition:border-color .3s ease,background-color .3s ease}
     .nai-suggest-item.active  {background-color: #323658ff;border-color: #f5f3c2;transition:background-color .3s ease,border-color .3s ease}
@@ -84,6 +85,23 @@ if (typeof MessagePack !== 'undefined') {
     console.error('[PresetMgr] MessagePack was not attached to page context (unsafeWindow)!');
 }
 
+const messageTranslations = {
+    'en': {
+        doubleUnderscoreError: '[NovelAI Prompt Preset Manager]\nERROR: Do not use double-underscore (__) to the preset name.\n\nThis symbol should only be used to enclose actual preset tokens.',
+        importFailure: '[NovelAI Prompt Preset Manager]\nFailed to import: ',
+        confirmDeletePreset: '[NovelAI Prompt Preset Manager]\nDelete preset?: ',
+        confirmDeleteAllPresets: '[NovelAI Prompt Preset Manager]\nDelete ALL saved presets?',
+        allPresetsDeleted: '[NovelAI Prompt Preset Manager]\nAll presets deleted.',
+    },
+    'ja': {
+        doubleUnderscoreError: '[NovelAI Prompt Preset Manager]\nエラー: プリセット名にダブルアンダースコア (__) を使用しないでください。\n\nこの記号は、実際のプリセットトークンを囲むときだけに使用する必要があります。',
+        importFailure: '[NovelAI Prompt Preset Manager]\nインポートに失敗しました: ',
+        confirmDeletePreset: '[NovelAI Prompt Preset Manager]\nプリセットを削除しますか？: ',
+        confirmDeleteAllPresets: '[NovelAI Prompt Preset Manager]\n保存されているすべてのプリセットを削除しますか？',
+        allPresetsDeleted: '[NovelAI Prompt Preset Manager]\nすべてのプリセットが削除されました。',
+    }
+}
+
 /*
     * イベント
     * naiRemainUpdate → トークンをメタデータに残すかどうかのトグル
@@ -94,8 +112,13 @@ if (typeof MessagePack !== 'undefined') {
 
 class UIManager {
     constructor(root) {
+        this.langCode = this.setLangCode();
         this.panel   = this.injectUI(root);
         this.jsonMgr = jsonManagerSingleton;
+    }
+    setLangCode() {
+        if (window.__userLang){ return window.__userLang.startsWith('ja') ? 'ja' : 'en'; }
+        else return 'en';
     }
     injectUI(root) {
         // TODO: モバイルとPCのUIに重複してインジェクトするよりwindow.innerwidthで条件分岐して付け替えたりした方がいいのかもしれない
@@ -145,14 +168,14 @@ class UIManager {
                 <button class="nai-btn nai-set-import" style="width:100%;margin-bottom:8px">Import Preset</button>
                 <button class="nai-btn nai-set-export" style="width:100%;margin-bottom:8px">Export Preset</button>
                 <button class="nai-btn nai-set-clear"  style="width:100%;color:red">Clear All Preset</button>
-                <div class="nai-remain-row">
+                <label class="nai-remain-row">
                     <input type="checkbox" id="nai-remain-check">
                     <span>Remain Preset Token</span>
-                </div>
-                <div class="nai-remain-row">
+                </label>
+                <label class="nai-remain-row">
                     <input type="checkbox" id="nai-debug-mode-check">
                     <span>Enable Debug Logging</span>
-                </div>
+                </label>
                 <input type="file" accept=".json,.txt" class="nai-file-input" style="display:none">
             </div>
 
@@ -249,13 +272,10 @@ class UIManager {
 
             if (name.includes('__')) {
                 alert(
-                    '[NovelAI Prompt Preset Manager]\n' +
-                    'ERROR: Do not use double-underscore (__) to the preset name.\n\n' +
-                    'This symbol should only be used to enclose actual preset tokens.'
+                    messageTranslations[this.langCode].doubleUnderscoreError
                 );
                 return;
             }
-
             const key = PREFIX + name;
             const alreadyExists = GM_getValue(key, null) !== null;
             GM_setValue(key, presetText);
@@ -304,9 +324,9 @@ class UIManager {
                     autoResizeTextarea(textarea);
                     updateOverlay();
                     panel.querySelector('.nai-preset-input').value = name;
-                    const allCheckbocks = document.querySelectorAll('.nai-preset-item input[type="checkbox"]');
+                    const allCheckboxes = document.querySelectorAll('.nai-preset-item input[type="checkbox"]');
                     const allBtns = document.querySelectorAll('.nai-btn-remove');
-                    allCheckbocks.forEach((el) => {
+                    allCheckboxes.forEach((el) => {
                         if (el !== e.target) {
                             el.checked = false;
                         }
@@ -327,7 +347,7 @@ class UIManager {
             e.preventDefault();
             const item = e.target.closest('.nai-preset-item');
             const name = item.querySelector('span').textContent;
-            if (!confirm('[NovelAI Prompt Preset Manager]\nDelete preset?: '+ name)) return;
+            if (!confirm(messageTranslations[this.langCode].confirmDeletePreset + name)) return;
             GM_deleteValue(PREFIX + name);
             item.remove();
             this.jsonMgr.updateDict();
@@ -349,7 +369,6 @@ class UIManager {
                 }
             });
         };
-
         searchBox.addEventListener('input', filterPresets);
         searchBtn.addEventListener('click', filterPresets);
 
@@ -395,7 +414,8 @@ class UIManager {
                         }
                     });
                 } catch(err) {
-                    alert('[NovelAI Prompt Preset Manager]\nFailed to import: ' + err.message);
+                    alert(messageTranslations[this.langCode].importFailure + err.message);
+                    return;
                 }
                 if (importCount > 0) {
                     console.log(`[NovelAI Prompt Preset Manager]\nImported ${importCount} new preset(s)!`);
@@ -431,12 +451,12 @@ class UIManager {
         });
 
         clearBtn.addEventListener('click', () => {
-            if (!confirm('[NovelAI Prompt Preset Manager]\nDelete ALL saved presets?')) return;
+            if (!confirm(messageTranslations[this.langCode].confirmDeleteAllPresets)) return;
             GM_listValues()
                 .filter(k => k.startsWith(PREFIX))
                 .forEach(k => GM_deleteValue(k));
             list.innerHTML = '';
-            alert('[NovelAI Prompt Preset Manager]\nAll presets deleted.');
+            alert(messageTranslations[this.langCode].allPresetsDeleted);
             this.jsonMgr.updateDict();
         });
 
@@ -1195,6 +1215,8 @@ const jsonManagerSingleton = new JsonManager();
 (function () {
     'use strict';
 
+    const userLang = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
+    window.__userLang = userLang;
     window.__naiPmObserver ??
         (window.__naiPmObserver = new ProseMirrorObserver(jsonManagerSingleton));
     window.__naiPromptObserver ??
