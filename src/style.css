@@ -1,0 +1,38 @@
+.nai-preset-panel         {background:#0e0f21;border:1px solid rgb(34, 37, 63);padding:5px 15px;font-size:13px;color:#f0f0f0}
+.nai-preset-title         {font-weight:700;margin-bottom:10px;font-size:14px;padding:7px 5px 0px;}
+.nai-textarea-wrapper     {position:relative;width:100%;background:#0e0f21;}
+.nai-preset-textarea, .nai-textarea-overlay {width:100%;min-height:80px;max-height:300px;padding:6px;border:none;border-radius:4px;font-size:14px;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:break-word;margin:0;background:transparent;}
+.nai-preset-textarea      {position:relative;z-index:1;color:transparent;caret-color:#f8f8f8;overflow-y:auto;}
+.nai-textarea-overlay     {position:absolute;top:0;left:0;z-index:0;height:100%;pointer-events:none;overflow:hidden;color:#f8f8f8;}
+.newline-char             {display:inline-block;color:#dd6666;background:rgba(221,102,102,0.1);border:1px solid rgba(221,102,102,0.5);border-radius:3px;font-weight:bold;padding:0 3px;line-height:1;font-size:12px;vertical-align:middle;user-select:none;}
+.nai-preset-controls      {display:flex;gap:6px;align-items:center;margin:6px 0}
+.nai-preset-input         {flex:1 1 0;padding:4px 6px;border-radius:4px;border:2px solid #262946;background:#0e0f21;color:#f8f8f8}
+.nai-btn                  {padding:4px 10px;border:1px solid rgb(34, 37, 63);background: #22253f;color: #f8f8f8;border-radius:4px;cursor:pointer;font-weight:600}
+.nai-btn:hover            {background: #323658ff}
+.nai-preset-list          {display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;}
+.nai-preset-item          {background:#22253f;border:1px solid rgb(34,37,63);padding:2px 6px;border-radius:4px;display:inline-flex;width:fit-content;max-width:100%;white-space:nowrap;gap:4px;align-items:center;cursor:pointer;transition:border-color .3s ease;user-select:none}
+.nai-preset-item input    {margin:0;accent-color: #f5f3c2;}
+.nai-preset-item:hover    {border-color: #f5f3c2;}
+.nai-btn-remove           {display:none;border:none;background:none;color:#dd6666;font-size:15px;cursor:pointer;line-height:1}
+.nai-btn-toggle           {width:26px;padding:4px 0;font-weight:700}
+.nai-gear-wrap            {position:absolute; top:6px; right:6px}
+.nai-gear-btn             {width:26px;height:26px;cursor:pointer;border:none;background:none;padding:0;display:flex;align-items:center;justify-content:center;border-radius:2px;color:#f8f8f8}
+.nai-gear-btn.active      {color:#e7f3c2;}
+.nai-popup                {position:absolute;bottom:100%;right:0;margin-bottom:8px;width:200px;padding:10px;background:#13152c;border:2px solid #262946;border-radius:4px;color:#eee;display:none;z-index:2147483647}
+.nai-popup:before         {content:'';position:absolute;bottom:-6px;right:14px;border:6px solid transparent;border-top-color:#262946}
+.nai-remain-row           {margin-top:6px;display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;float:left}
+.nai-remain-row input[type="checkbox"] { margin: 6px; accent-color: #f5f3c2; }
+.nai-remain-row:hover     { cursor: pointer; }
+.nai-suggest-box          {position:fixed;z-index:2147483647;background:#191b31;border:2px solid #262946;border-radius:4px;max-height:180px;overflow-y:auto;font-size:13px;color:#eee}
+.nai-suggest-item         {padding:4px 8px;cursor:pointer;border:1px solid rgb(34,37,63);border-radius:4px;transition:border-color .3s ease,background-color .3s ease}
+.nai-suggest-item.active  {background-color: #323658ff;border-color: #f5f3c2;transition:background-color .3s ease,border-color .3s ease}
+.nai-popup-header         {display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;}
+.nai-info-btn             {display:inline-flex;align-items:center;justify-content:center;color:#f8f8f8;opacity:0.6;transition:opacity .2s ease;}
+.nai-info-btn:hover       {opacity:1;}
+.nai-preset-search        {display:flex;gap:6px;align-items:center;margin-top:6px;}
+.nai-preset-search-box    {flex:1 1 0;padding:4px 6px;border-radius:4px;border:2px solid #262946;background:#0e0f21;color:#f8f8f8}
+.nai-preset-search-button {width:26px;cursor:pointer;padding:4px 0;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#f8f8f8;}
+.nai-btn-list-toggle      {width:26px;padding:4px 0;font-weight:700}
+.nai-btn:focus-visible:not([data-mouse-clicked]), .nai-preset-search-button:focus-visible:not([data-mouse-clicked]), .nai-gear-btn:focus-visible:not([data-mouse-clicked]), .nai-btn-remove:focus-visible:not([data-mouse-clicked]), .nai-preset-panel input[type="checkbox"]:focus-visible:not([data-mouse-clicked]) {outline:2px solid #f5f3c2; outline-offset:1px; border-radius:4px;}
+@keyframes Flash          {0%{background: #f5f3c2} 100%{background: #22253f}}
+@keyframes Flash-Err      {0%{background: rgba(221,102,102,0.5)} 100%{background: #22253f}}

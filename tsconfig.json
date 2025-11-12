@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "types": [
+      "@types/tampermonkey",
+    ],
+    "strictPropertyInitialization": false,
+  },
+  "include": [
+    "src",
+    "vite.config.ts"
+  ]
+}
