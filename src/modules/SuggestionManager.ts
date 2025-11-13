@@ -66,7 +66,7 @@ export class SuggestionManager {
         const txt  = this.textBeforeCaret();
         const dict = this.jsonMgr.getDict();
 
-        const mVal = txt.match(/__([A-Za-z0-9_-]+)__(\w*)$/);
+        const mVal = txt.match(/__([A-Za-z0-9_.-]+)__(\w*)$/);
         if (mVal && dict[mVal[1]]) {
         const [ , key, part ] = mVal;
         const list = dict[key]
@@ -77,7 +77,7 @@ export class SuggestionManager {
         if (list.length) return this.render(list.map(t => ({type:'value', text:t, originalKey: key })));
         }
 
-        const mTok = txt.match(/__([A-Za-z0-9_-]*)$/);
+        const mTok = txt.match(/__([A-Za-z0-9_.-]*)$/);
         if (mTok) {
             const prefix = mTok[1].toLowerCase();
             let keys = Object.keys(dict);

@@ -2,7 +2,7 @@
 // @name              NovelAI Prompt Preset / Wildcards Manager
 // @name:ja           NovelAI Prompt Preset / Wildcards Manager
 // @namespace         https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
-// @version           1.3.7
+// @version           1.3.8
 // @author            Nevium7, Gemini 2.5 Pro
 // @description       Script to replace __TOKEN__ with any prompt you want before making a request to the NovelAI API. Also adds a UI to manage presets and wildcards on the image generation page.
 // @description:ja    NovelAI の API にリクエストを行う前に、__TOKEN__ を任意のプロンプトに置き換えるスクリプト。プリセットやワイルドカードを管理するためのUIも画像生成ページに追加します。
@@ -36,7 +36,7 @@
 .nai-btn:hover            {background: #323658ff}\r
 .nai-preset-list          {display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;}\r
 .nai-preset-item          {background:#22253f;border:1px solid rgb(34,37,63);padding:2px 6px;border-radius:4px;display:inline-flex;width:fit-content;max-width:100%;white-space:nowrap;gap:4px;align-items:center;cursor:pointer;transition:border-color .3s ease;user-select:none}\r
-.nai-preset-item input    {margin:0;accent-color: #f5f3c2;}\r
+.nai-preset-item input    {margin:0; accent-color: #f5f3c2; cursor: pointer;}\r
 .nai-preset-item:hover    {border-color: #f5f3c2;}\r
 .nai-btn-remove           {display:none;border:none;background:none;color:#dd6666;font-size:15px;cursor:pointer;line-height:1}\r
 .nai-btn-toggle           {width:26px;padding:4px 0;font-weight:700}\r
@@ -46,8 +46,8 @@
 .nai-popup                {position:absolute;bottom:100%;right:0;margin-bottom:8px;width:200px;padding:10px;background:#13152c;border:2px solid #262946;border-radius:4px;color:#eee;display:none;z-index:2147483647}\r
 .nai-popup:before         {content:'';position:absolute;bottom:-6px;right:14px;border:6px solid transparent;border-top-color:#262946}\r
 .nai-remain-row           {margin-top:6px;display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;float:left}\r
-.nai-remain-row input[type="checkbox"] { margin: 6px; accent-color: #f5f3c2; }\r
-.nai-remain-row:hover     { cursor: pointer; }\r
+.nai-remain-row input[type="checkbox"] {margin: 6px; accent-color: #f5f3c2; cursor: pointer;}\r
+.nai-remain-row:hover     {cursor: pointer;}\r
 .nai-suggest-box          {position:fixed;z-index:2147483647;background:#191b31;border:2px solid #262946;border-radius:4px;max-height:180px;overflow-y:auto;font-size:13px;color:#eee}\r
 .nai-suggest-item         {padding:4px 8px;cursor:pointer;border:1px solid rgb(34,37,63);border-radius:4px;transition:border-color .3s ease,background-color .3s ease}\r
 .nai-suggest-item.active  {background-color: #323658ff;border-color: #f5f3c2;transition:background-color .3s ease,border-color .3s ease}\r
@@ -505,13 +505,13 @@ installPatch() {
     update() {
       const txt = this.textBeforeCaret();
       const dict = this.jsonMgr.getDict();
-      const mVal = txt.match(/__([A-Za-z0-9_-]+)__(\w*)$/);
+      const mVal = txt.match(/__([A-Za-z0-9_.-]+)__(\w*)$/);
       if (mVal && dict[mVal[1]]) {
         const [, key, part] = mVal;
         const list = dict[key].split(/\r?\n/).filter(Boolean).filter((l) => l.toLowerCase().includes(part.toLowerCase())).slice(0, 100);
         if (list.length) return this.render(list.map((t) => ({ type: "value", text: t, originalKey: key })));
       }
-      const mTok = txt.match(/__([A-Za-z0-9_-]*)$/);
+      const mTok = txt.match(/__([A-Za-z0-9_.-]*)$/);
       if (mTok) {
         const prefix = mTok[1].toLowerCase();
         let keys = Object.keys(dict);
