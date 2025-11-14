@@ -1,4 +1,4 @@
-import { PREFIX, TOKEN_REMAIN_TRG, DEBUG_MODE_TRG } from '../constants';
+import * as CONST from '../constants';
 
 export class JsonManager {
     TARGET_PATH: string;
@@ -14,8 +14,8 @@ export class JsonManager {
     buildDict(): Record<string, string> {
         const dict: Record<string, string> = {};
         GM_listValues()
-          .filter(k => k.startsWith(PREFIX))
-          .forEach(k => dict[k.slice(PREFIX.length)] = GM_getValue(k, ''));
+          .filter(k => k.startsWith(CONST.PREFIX))
+          .forEach(k => dict[k.slice(CONST.PREFIX.length)] = GM_getValue(k, ''));
         console.log('[NovelAI Prompt Preset Manager] Preset dict built.');
         return dict;
     }
@@ -25,8 +25,8 @@ export class JsonManager {
         this._patchInstalled = true;
 
         const TARGET = this.TARGET_PATH;
-        const naiRemainValue = GM_getValue(TOKEN_REMAIN_TRG, false);
-        const debugModeValue = GM_getValue(DEBUG_MODE_TRG, false);
+        const naiRemainValue = GM_getValue(CONST.TOKEN_REMAIN_TRG, false);
+        const debugModeValue = GM_getValue(CONST.DEBUG_MODE_TRG, false);
         const initialDict = JSON.stringify(this._dictCache)
                             .replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g,'\\${');
 
@@ -85,9 +85,9 @@ export class JsonManager {
                             const safeCopy = (obj) => obj ? JSON.parse(JSON.stringify(obj)) : null;
                             window.__naiLastPromptData = {
                                 inputPrompt : jsonData.input ?? '',
-                                caption     : safeCopy(params.v4_prompt?.caption),
-                                negCaption  : safeCopy(params.v4_negative_prompt?.caption),
-                                negative    : jsonData.negative_prompt ?? ''
+                                caption     : safeCopy(params.v4_prompt?.caption) ?? '',
+                                negCaption  : safeCopy(params.v4_negative_prompt?.caption) ?? '',
+                                negative    : safeCopy(params.negative_prompt) ?? '',
                             };
                             debugLog('[PresetMgr] Stored raw prompt data for patching.');
                         } catch(e) { console.error('[PresetMgr] Error parsing prompt data:', e); }
@@ -316,7 +316,7 @@ export class JsonManager {
                             const meta = JSON.parse(oldTxt);
 
                             // meta
-                            if (raw.inputPrompt) { meta.prompt = raw.inputPrompt; }
+                            if (raw.inputPrompt && meta.prompt) { meta.prompt = raw.inputPrompt; }
                             if (raw.caption && meta.v4_prompt?.caption) {
                                 meta.v4_prompt.caption.base_caption = raw.caption.base_caption ?? meta.v4_prompt.caption.base_caption;
                                 meta.v4_prompt.caption.char_captions = raw.caption.char_captions ?? meta.v4_prompt.caption.char_captions;
@@ -325,7 +325,7 @@ export class JsonManager {
                                 meta.v4_negative_prompt.caption.base_caption = raw.negCaption.base_caption ?? meta.v4_negative_prompt.caption.base_caption;
                                 meta.v4_negative_prompt.caption.char_captions = raw.negCaption.char_captions ?? meta.v4_negative_prompt.caption.char_captions;
                             }
-                            if (raw.negative) { meta.uc = raw.negative }
+                            if (raw.negative && meta.uc) { meta.uc = raw.negative }
 
                             const newTxt = new TextEncoder().encode(JSON.stringify(meta));
                             const delta = newTxt.length - oldLen;

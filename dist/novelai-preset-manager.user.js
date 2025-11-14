@@ -48,6 +48,13 @@
 .nai-remain-row           {margin-top:6px;display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;float:left}\r
 .nai-remain-row input[type="checkbox"] {margin: 6px; accent-color: #f5f3c2; cursor: pointer;}\r
 .nai-remain-row:hover     {cursor: pointer;}\r
+.nai-remain-row[data-tooltip] {position: relative;}\r
+.nai-remain-row[data-tooltip]::before,\r
+.nai-remain-row[data-tooltip]::after {display: none;position: absolute;left: 50%;transform: translateX(-50%);z-index: 100;}\r
+.nai-remain-row[data-tooltip]::before {content: attr(data-tooltip);width: 250px;bottom: 100%;margin-bottom: 8px;padding: 6px 8px;background: #13152c;border: 2px solid #262946;border-radius: 4px;color: #eee;font-size: 12px;white-space: normal;text-align: left;}\r
+.nai-remain-row[data-tooltip]::after {content: '';bottom: 100%;margin-bottom: 2px;border: 6px solid transparent;border-top-color: #262946;}\r
+.nai-remain-row[data-tooltip]:hover::before,\r
+.nai-remain-row[data-tooltip]:hover::after {display: block;}\r
 .nai-suggest-box          {position:fixed;z-index:2147483647;background:#191b31;border:2px solid #262946;border-radius:4px;max-height:180px;overflow-y:auto;font-size:13px;color:#eee}\r
 .nai-suggest-item         {padding:4px 8px;cursor:pointer;border:1px solid rgb(34,37,63);border-radius:4px;transition:border-color .3s ease,background-color .3s ease}\r
 .nai-suggest-item.active  {background-color: #323658ff;border-color: #f5f3c2;transition:background-color .3s ease,border-color .3s ease}\r
@@ -141,9 +148,9 @@ installPatch() {
                             const safeCopy = (obj) => obj ? JSON.parse(JSON.stringify(obj)) : null;
                             window.__naiLastPromptData = {
                                 inputPrompt : jsonData.input ?? '',
-                                caption     : safeCopy(params.v4_prompt?.caption),
-                                negCaption  : safeCopy(params.v4_negative_prompt?.caption),
-                                negative    : jsonData.negative_prompt ?? ''
+                                caption     : safeCopy(params.v4_prompt?.caption) ?? '',
+                                negCaption  : safeCopy(params.v4_negative_prompt?.caption) ?? '',
+                                negative    : safeCopy(params.negative_prompt) ?? '',
                             };
                             debugLog('[PresetMgr] Stored raw prompt data for patching.');
                         } catch(e) { console.error('[PresetMgr] Error parsing prompt data:', e); }
@@ -372,7 +379,7 @@ installPatch() {
                             const meta = JSON.parse(oldTxt);
 
                             // meta
-                            if (raw.inputPrompt) { meta.prompt = raw.inputPrompt; }
+                            if (raw.inputPrompt && meta.prompt) { meta.prompt = raw.inputPrompt; }
                             if (raw.caption && meta.v4_prompt?.caption) {
                                 meta.v4_prompt.caption.base_caption = raw.caption.base_caption ?? meta.v4_prompt.caption.base_caption;
                                 meta.v4_prompt.caption.char_captions = raw.caption.char_captions ?? meta.v4_prompt.caption.char_captions;
@@ -381,7 +388,7 @@ installPatch() {
                                 meta.v4_negative_prompt.caption.base_caption = raw.negCaption.base_caption ?? meta.v4_negative_prompt.caption.base_caption;
                                 meta.v4_negative_prompt.caption.char_captions = raw.negCaption.char_captions ?? meta.v4_negative_prompt.caption.char_captions;
                             }
-                            if (raw.negative) { meta.uc = raw.negative }
+                            if (raw.negative && meta.uc) { meta.uc = raw.negative }
 
                             const newTxt = new TextEncoder().encode(JSON.stringify(meta));
                             const delta = newTxt.length - oldLen;
@@ -726,6 +733,24 @@ installPatch() {
       allPresetsDeleted: "[NovelAI Prompt Preset Manager]\nすべてのプリセットが削除されました。"
     }
   };
+  const uiMessageTranslations = {
+    "en": {
+      presetNameError: "The preset name contains invalid characters.",
+      presetLengthError: "The preset name is too long.",
+      tooltipEnableDebugLog: "Outputs debug logs to the console. Can be checked from devtools.",
+      tooltipRemainToken: "Sets whether to leave the preset token in the metadata.",
+      popupPresetAdded: "Preset added: ",
+      popupPresetUpdated: "Preset updated: "
+    },
+    "ja": {
+      presetNameError: "プリセットに使用できない文字が含まれています。",
+      presetLengthError: "プリセット名が長すぎます。",
+      tooltipEnableDebugLog: "コンソールにデバッグログを出力します。devtoolsから確認できます。",
+      tooltipRemainToken: "メタデータにプリセットトークンを残すかどうかを設定します。",
+      popupPresetAdded: "プリセットが追加されました。: ",
+      popupPresetUpdated: "プリセットが更新されました。: "
+    }
+  };
   class UIManager {
     langCode;
     panel;
@@ -785,11 +810,11 @@ installPatch() {
                 <button class="nai-btn nai-set-import" style="width:100%;margin-bottom:8px">Import Preset</button>
                 <button class="nai-btn nai-set-export" style="width:100%;margin-bottom:8px">Export Preset</button>
                 <button class="nai-btn nai-set-clear"  style="width:100%;color:red">Clear All Preset</button>
-                <label class="nai-remain-row">
+                <label class="nai-remain-row" data-tooltip="${uiMessageTranslations[this.langCode].tooltipRemainToken}">
                     <input type="checkbox" id="nai-remain-check">
                     <span>Remain Preset Token</span>
                 </label>
-                <label class="nai-remain-row">
+                <label class="nai-remain-row" data-tooltip="${uiMessageTranslations[this.langCode].tooltipEnableDebugLog}">
                     <input type="checkbox" id="nai-debug-mode-check">
                     <span>Enable Debug Logging</span>
                 </label>
@@ -1107,7 +1132,8 @@ makeListItem(name) {
       if (prev && !prev.panel?.isConnected) {
         prev.destroy();
         this.map.delete(root);
-      } else if (!this.map.has(root)) {
+      }
+      if (!this.map.has(root)) {
         const ui = new UIManager(root);
         this.map.set(root, ui);
       }
@@ -1123,7 +1149,7 @@ makeListItem(name) {
         m.addedNodes.forEach((n) => {
           if (n.nodeType !== 1) return;
           n.querySelectorAll?.(
-            ".prompt-input-box-prompt,.prompt-input-box-プロンプト,.prompt-input-box-ベースプロンプト,.prompt-input-box-base-prompt"
+            ".image-gen-prompt-main"
           ).forEach((el) => {
             this.attach(el);
           });
@@ -1131,7 +1157,7 @@ makeListItem(name) {
         m.removedNodes.forEach((n) => {
           if (n.nodeType !== 1) return;
           n.querySelectorAll?.(
-            ".prompt-input-box-prompt,.prompt-input-box-プロンプト,.prompt-input-box-ベースプロンプト,.prompt-input-box-base-prompt"
+            ".image-gen-prompt-main"
           ).forEach((el) => {
             this.detach(el);
           });

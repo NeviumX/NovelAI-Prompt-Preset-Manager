@@ -18,7 +18,7 @@ export class PromptBoxObserver {
             prev.destroy();
             this.map.delete(root);
         }
-        else if (!this.map.has(root)) {
+        if (!this.map.has(root)) {
             const ui = new UIManager(root);
             this.map.set(root, ui);
             //console.log('[NovelAI Prompt Preset Manager] UI attached.', root);
@@ -35,12 +35,12 @@ export class PromptBoxObserver {
         muts.forEach(m => {
             m.addedNodes.forEach((n: Node) => {
                 if (n.nodeType !== 1) return;
-                (n as Element).querySelectorAll?.('.prompt-input-box-prompt,.prompt-input-box-プロンプト,.prompt-input-box-ベースプロンプト,.prompt-input-box-base-prompt'
+                (n as Element).querySelectorAll?.('.image-gen-prompt-main'
                     ).forEach(el => { this.attach(el); });
             });
             m.removedNodes.forEach((n: Node) => {
                 if (n.nodeType !== 1) return;
-                (n as Element).querySelectorAll?.('.prompt-input-box-prompt,.prompt-input-box-プロンプト,.prompt-input-box-ベースプロンプト,.prompt-input-box-base-prompt'
+                (n as Element).querySelectorAll?.('.image-gen-prompt-main'
                     ).forEach(el => { this.detach(el); });
             });
         });

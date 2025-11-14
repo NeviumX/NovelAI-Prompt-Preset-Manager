@@ -12,5 +12,24 @@ export const messageTranslations = {
         confirmDeletePreset: '[NovelAI Prompt Preset Manager]\nプリセットを削除しますか？: ',
         confirmDeleteAllPresets: '[NovelAI Prompt Preset Manager]\n保存されているすべてのプリセットを削除しますか？',
         allPresetsDeleted: '[NovelAI Prompt Preset Manager]\nすべてのプリセットが削除されました。',
-    }
+    },
+}
+
+export const uiMessageTranslations = {
+    'en': {
+        presetNameError: 'The preset name contains invalid characters.',
+        presetLengthError: 'The preset name is too long.',
+        tooltipEnableDebugLog: 'Outputs debug logs to the console. Can be checked from devtools.',
+        tooltipRemainToken: 'Sets whether to leave the preset token in the metadata.',
+        popupPresetAdded: 'Preset added: ',
+        popupPresetUpdated: 'Preset updated: ',
+    },
+    'ja': {
+        presetNameError: 'プリセットに使用できない文字が含まれています。',
+        presetLengthError: 'プリセット名が長すぎます。',
+        tooltipEnableDebugLog: 'コンソールにデバッグログを出力します。devtoolsから確認できます。',
+        tooltipRemainToken: 'メタデータにプリセットトークンを残すかどうかを設定します。',
+        popupPresetAdded: 'プリセットが追加されました。: ',
+        popupPresetUpdated: 'プリセットが更新されました。: ',
+    },
 }

@@ -1,7 +1,7 @@
 import { jsonManagerSingleton } from './JsonManager';
 import { JsonManager } from './JsonManager';
-import { PREFIX, TOKEN_REMAIN_TRG, DEBUG_MODE_TRG } from '../constants';
-import { messageTranslations } from './translations';
+import * as CONST from '../constants';
+import { messageTranslations, uiMessageTranslations } from './translations';
 
 /*
     * イベント
@@ -74,11 +74,11 @@ export class UIManager {
                 <button class="nai-btn nai-set-import" style="width:100%;margin-bottom:8px">Import Preset</button>
                 <button class="nai-btn nai-set-export" style="width:100%;margin-bottom:8px">Export Preset</button>
                 <button class="nai-btn nai-set-clear"  style="width:100%;color:red">Clear All Preset</button>
-                <label class="nai-remain-row">
+                <label class="nai-remain-row" data-tooltip="${uiMessageTranslations[this.langCode].tooltipRemainToken}">
                     <input type="checkbox" id="nai-remain-check">
                     <span>Remain Preset Token</span>
                 </label>
-                <label class="nai-remain-row">
+                <label class="nai-remain-row" data-tooltip="${uiMessageTranslations[this.langCode].tooltipEnableDebugLog}">
                     <input type="checkbox" id="nai-debug-mode-check">
                     <span>Enable Debug Logging</span>
                 </label>
@@ -155,9 +155,9 @@ export class UIManager {
         /* preset data list */
         const list = panel.querySelector('.nai-preset-list') as HTMLDivElement;
         GM_listValues()
-            .filter(k => k.startsWith(PREFIX))
+            .filter(k => k.startsWith(CONST.PREFIX))
             .forEach(k => {
-                const presetName = k.slice(PREFIX.length);
+                const presetName = k.slice(CONST.PREFIX.length);
                 list.appendChild(this.makeListItem(presetName));
             });
 
@@ -183,7 +183,7 @@ export class UIManager {
                 );
                 return;
             }
-            const key = PREFIX + name;
+            const key = CONST.PREFIX + name;
             const alreadyExists = GM_getValue(key, null) !== null;
             GM_setValue(key, presetText);
             if(alreadyExists) {
@@ -227,7 +227,7 @@ export class UIManager {
                 btn.style.display = target.checked ? 'inline' : 'none';
                 if(target.checked) {
                     const name = (item.querySelector('span') as HTMLSpanElement).textContent as string;
-                    const presetText = GM_getValue(PREFIX + name, '');
+                    const presetText = GM_getValue(CONST.PREFIX + name, '');
                     textarea.value = presetText;
                     autoResizeTextarea(textarea);
                     updateOverlay();
@@ -257,7 +257,7 @@ export class UIManager {
             const item = target.closest('.nai-preset-item') as HTMLLabelElement;
             const name = (item.querySelector('span') as HTMLSpanElement).textContent as string;
             if (!confirm(messageTranslations[this.langCode].confirmDeletePreset + name)) return;
-            GM_deleteValue(PREFIX + name);
+            GM_deleteValue(CONST.PREFIX + name);
             item.remove();
             this.jsonMgr.updateDict();
         });
@@ -315,7 +315,7 @@ export class UIManager {
                     const obj = JSON.parse(reader.result as string);
                     Object.entries(obj).forEach(([name, prompt]) => {
                         if (typeof prompt !== 'string') return;
-                        const key = PREFIX + name;
+                        const key = CONST.PREFIX + name;
                         if(GM_getValue(key, null) === null) {
                             GM_setValue(key, prompt);
                             list.appendChild(this.makeListItem(name));
@@ -338,9 +338,9 @@ export class UIManager {
         exportBtn.addEventListener('click', () => {
             const data: Record<string, string> = {};
             GM_listValues()
-                .filter(k => k.startsWith(PREFIX))
+                .filter(k => k.startsWith(CONST.PREFIX))
                 .forEach(k => {
-                    const presetName = k.slice(PREFIX.length);
+                    const presetName = k.slice(CONST.PREFIX.length);
                     data[presetName] = GM_getValue(k, '');
                 });
             const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
@@ -362,7 +362,7 @@ export class UIManager {
         clearBtn.addEventListener('click', () => {
             if (!confirm(messageTranslations[this.langCode].confirmDeleteAllPresets)) return;
             GM_listValues()
-                .filter(k => k.startsWith(PREFIX))
+                .filter(k => k.startsWith(CONST.PREFIX))
                 .forEach(k => GM_deleteValue(k));
             list.innerHTML = '';
             alert(messageTranslations[this.langCode].allPresetsDeleted);
@@ -378,16 +378,16 @@ export class UIManager {
         document.addEventListener('click', this._onDocClick, false);
 
         const remainChk = panel.querySelector('#nai-remain-check') as HTMLInputElement;
-        remainChk.checked = GM_getValue(TOKEN_REMAIN_TRG, false);
+        remainChk.checked = GM_getValue(CONST.TOKEN_REMAIN_TRG, false);
         remainChk.addEventListener('change', () =>{
-            GM_setValue(TOKEN_REMAIN_TRG, remainChk.checked);
+            GM_setValue(CONST.TOKEN_REMAIN_TRG, remainChk.checked);
             window.dispatchEvent(new CustomEvent('naiRemainUpdate',{detail: remainChk.checked}));
         });
 
         const debugChk = panel.querySelector('#nai-debug-mode-check') as HTMLInputElement;
-        debugChk.checked = GM_getValue(DEBUG_MODE_TRG, false);
+        debugChk.checked = GM_getValue(CONST.DEBUG_MODE_TRG, false);
         debugChk.addEventListener('change', () => {
-            GM_setValue(DEBUG_MODE_TRG, debugChk.checked);
+            GM_setValue(CONST.DEBUG_MODE_TRG, debugChk.checked);
             window.dispatchEvent(new CustomEvent('naiDebugUpdate', {detail: debugChk.checked}))
         });
 

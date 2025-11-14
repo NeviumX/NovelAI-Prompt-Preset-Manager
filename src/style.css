@@ -23,6 +23,13 @@
 .nai-remain-row           {margin-top:6px;display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;float:left}
 .nai-remain-row input[type="checkbox"] {margin: 6px; accent-color: #f5f3c2; cursor: pointer;}
 .nai-remain-row:hover     {cursor: pointer;}
+.nai-remain-row[data-tooltip] {position: relative;}
+.nai-remain-row[data-tooltip]::before,
+.nai-remain-row[data-tooltip]::after {display: none;position: absolute;left: 50%;transform: translateX(-50%);z-index: 100;}
+.nai-remain-row[data-tooltip]::before {content: attr(data-tooltip);width: 250px;bottom: 100%;margin-bottom: 8px;padding: 6px 8px;background: #13152c;border: 2px solid #262946;border-radius: 4px;color: #eee;font-size: 12px;white-space: normal;text-align: left;}
+.nai-remain-row[data-tooltip]::after {content: '';bottom: 100%;margin-bottom: 2px;border: 6px solid transparent;border-top-color: #262946;}
+.nai-remain-row[data-tooltip]:hover::before,
+.nai-remain-row[data-tooltip]:hover::after {display: block;}
 .nai-suggest-box          {position:fixed;z-index:2147483647;background:#191b31;border:2px solid #262946;border-radius:4px;max-height:180px;overflow-y:auto;font-size:13px;color:#eee}
 .nai-suggest-item         {padding:4px 8px;cursor:pointer;border:1px solid rgb(34,37,63);border-radius:4px;transition:border-color .3s ease,background-color .3s ease}
 .nai-suggest-item.active  {background-color: #323658ff;border-color: #f5f3c2;transition:background-color .3s ease,border-color .3s ease}
