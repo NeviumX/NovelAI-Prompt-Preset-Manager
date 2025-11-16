@@ -23,12 +23,13 @@
 (function () {
   'use strict';
 
-  const cssString = `.nai-preset-panel         {background:#0e0f21;border:1px solid rgb(34, 37, 63);padding:5px 15px;font-size:13px;color:#f0f0f0}\r
+  const cssString = `.nai-preset-panel         {background:#0e0f21;border:1px solid rgb(34, 37, 63);padding:5px 15px;font-size:13px;color:#f0f0f0;}\r
 .nai-preset-title         {font-weight:700;margin-bottom:10px;font-size:14px;padding:7px 5px 0px;}\r
 .nai-textarea-wrapper     {position:relative;width:100%;background:#0e0f21;}\r
 .nai-preset-textarea, .nai-textarea-overlay {width:100%;min-height:80px;max-height:300px;padding:6px;border:none;border-radius:4px;font-size:14px;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:break-word;margin:0;background:transparent;}\r
 .nai-preset-textarea      {position:relative;z-index:1;color:transparent;caret-color:#f8f8f8;overflow-y:auto;}\r
 .nai-textarea-overlay     {position:absolute;top:0;left:0;z-index:0;height:100%;pointer-events:none;overflow:hidden;color:#f8f8f8;}\r
+.nai-preset-errormsg      {display: none;color: #dd6666; font-size: 12px;margin: 5px 0 0 2px;padding: 0 5px;}\r
 .newline-char             {display:inline-block;color:#dd6666;background:rgba(221,102,102,0.1);border:1px solid rgba(221,102,102,0.5);border-radius:3px;font-weight:bold;padding:0 3px;line-height:1;font-size:12px;vertical-align:middle;user-select:none;}\r
 .nai-preset-controls      {display:flex;gap:6px;align-items:center;margin:6px 0}\r
 .nai-preset-input         {flex:1 1 0;padding:4px 6px;border-radius:4px;border:2px solid #262946;background:#0e0f21;color:#f8f8f8}\r
@@ -66,8 +67,10 @@
 .nai-preset-search-button {width:26px;cursor:pointer;padding:4px 0;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#f8f8f8;}\r
 .nai-btn-list-toggle      {width:26px;padding:4px 0;font-weight:700}\r
 .nai-btn:focus-visible:not([data-mouse-clicked]), .nai-preset-search-button:focus-visible:not([data-mouse-clicked]), .nai-gear-btn:focus-visible:not([data-mouse-clicked]), .nai-btn-remove:focus-visible:not([data-mouse-clicked]), .nai-preset-panel input[type="checkbox"]:focus-visible:not([data-mouse-clicked]) {outline:2px solid #f5f3c2; outline-offset:1px; border-radius:4px;}\r
+.nai-preset-notification  {position: absolute;background: #191b31;border: 2px solid #262946; color: #f5f3c2;padding: 5px 10px;border-radius: 4px;font-size: 12px;z-index: 1000;animation: nai-fade-in-out 1.5s ease-out forwards;pointer-events: none;}\r
 @keyframes Flash          {0%{background: #f5f3c2} 100%{background: #22253f}}\r
-@keyframes Flash-Err      {0%{background: rgba(221,102,102,0.5)} 100%{background: #22253f}}`;
+@keyframes Flash-Err      {0%{background: rgba(221,102,102,0.5)} 100%{background: #22253f}}\r
+@keyframes nai-fade-in-out {0% { opacity: 0; transform: translateY(10px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); }100% { opacity: 0; transform: translateY(-10px); } }`;
   const PREFIX = "naiPromptPreset:";
   const TOKEN_REMAIN_TRG = "naiRemainTokenTrigger";
   const DEBUG_MODE_TRG = "debugModeTrigger";
@@ -739,16 +742,16 @@ installPatch() {
       presetLengthError: "The preset name is too long.",
       tooltipEnableDebugLog: "Outputs debug logs to the console. Can be checked from devtools.",
       tooltipRemainToken: "Sets whether to leave the preset token in the metadata.",
-      popupPresetAdded: "Preset added: ",
-      popupPresetUpdated: "Preset updated: "
+      popupPresetAdded: "Preset added.⇒ ",
+      popupPresetUpdated: "Preset updated.⇒ "
     },
     "ja": {
-      presetNameError: "プリセットに使用できない文字が含まれています。",
+      presetNameError: "プリセット名に使用できない文字が含まれています。",
       presetLengthError: "プリセット名が長すぎます。",
       tooltipEnableDebugLog: "コンソールにデバッグログを出力します。devtoolsから確認できます。",
       tooltipRemainToken: "メタデータにプリセットトークンを残すかどうかを設定します。",
-      popupPresetAdded: "プリセットが追加されました。: ",
-      popupPresetUpdated: "プリセットが更新されました。: "
+      popupPresetAdded: "プリセットが追加されました。⇒ ",
+      popupPresetUpdated: "プリセットが更新されました。⇒ "
     }
   };
   class UIManager {
@@ -826,6 +829,8 @@ installPatch() {
                 <div class="nai-textarea-overlay"></div>
             </div>
 
+            <div class="nai-preset-errormsg"></div>
+
             <div class="nai-preset-controls">
                 <input  class="nai-preset-input" placeholder="Preset name">
                 <button class="nai-btn nai-btn-add">ADD</button>
@@ -848,6 +853,7 @@ installPatch() {
       const textarea = panel.querySelector(".nai-preset-textarea");
       const overlay = panel.querySelector(".nai-textarea-overlay");
       const presetInput = panel.querySelector(".nai-preset-input");
+      const errorMsgDiv = panel.querySelector(".nai-preset-errormsg");
       const updateOverlay = () => {
         const text = textarea.value;
         overlay.innerHTML = "";
@@ -883,9 +889,42 @@ installPatch() {
       textarea.addEventListener("scroll", syncScroll);
       updateOverlay();
       const list = panel.querySelector(".nai-preset-list");
-      GM_listValues().filter((k) => k.startsWith(PREFIX)).forEach((k) => {
-        const presetName = k.slice(PREFIX.length);
-        list.appendChild(this.makeListItem(presetName));
+      GM_listValues().filter((k) => k.startsWith(PREFIX)).forEach(
+        (k) => {
+          const presetName = k.slice(PREFIX.length);
+          list.appendChild(this.makeListItem(presetName));
+        }
+      );
+      const scrollItemIntoView = (item) => {
+        if (!item) return;
+        if (list.scrollHeight > list.clientHeight) {
+          item.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      };
+      const validationRe = /^[A-Za-z0-9_.-]+$/;
+      const maxNameLength = 36;
+      const validatePresetName = (name) => {
+        if (name.length > maxNameLength) {
+          return uiMessageTranslations[this.langCode].presetLengthError;
+        }
+        if (name.includes("__")) {
+          return uiMessageTranslations[this.langCode].presetNameError;
+        }
+        if (name && !validationRe.test(name)) {
+          return uiMessageTranslations[this.langCode].presetNameError;
+        }
+        return null;
+      };
+      presetInput.addEventListener("input", () => {
+        const name = presetInput.value;
+        const error = validatePresetName(name);
+        if (error) {
+          errorMsgDiv.textContent = error;
+          errorMsgDiv.style.display = "block";
+        } else {
+          errorMsgDiv.textContent = "";
+          errorMsgDiv.style.display = "none";
+        }
       });
       const addBtn = panel.querySelector(".nai-btn-add");
       addBtn.onclick = () => {
@@ -898,11 +937,6 @@ installPatch() {
           btnFlashErr();
           return;
         }
-        const validationRe = /^[A-Za-z0-9_.-]+$/;
-        if (!validationRe.test(name)) {
-          btnFlashErr();
-          return;
-        }
         const presetText = textarea.value;
         if (!presetText) {
           btnFlashErr();
@@ -912,6 +946,11 @@ installPatch() {
           alert(
             messageTranslations[this.langCode].doubleUnderscoreError
           );
+          btnFlashErr();
+          return;
+        }
+        if (validatePresetName(name) !== null) {
+          btnFlashErr();
           return;
         }
         const key = PREFIX + name;
@@ -920,13 +959,22 @@ installPatch() {
         if (alreadyExists) {
           const item = [...list.children].find((el) => el.querySelector("span")?.textContent === name);
           if (item) {
+            addBtn.style.animation = "Flash 0.4s";
+            setTimeout(() => addBtn.style.animation = "", 400);
+            scrollItemIntoView(item);
             item.style.animation = "Flash 0.4s";
             setTimeout(() => item.style.animation = "", 400);
           }
+          this.showNotification(uiMessageTranslations[this.langCode].popupPresetUpdated + name);
         } else {
-          list.appendChild(this.makeListItem(name));
+          const newItem = this.makeListItem(name);
+          list.appendChild(newItem);
           addBtn.style.animation = "Flash 0.4s";
           setTimeout(() => addBtn.style.animation = "", 400);
+          newItem.style.animation = "Flash 0.4s";
+          scrollItemIntoView(newItem);
+          setTimeout(() => newItem.style.animation = "", 400);
+          this.showNotification(uiMessageTranslations[this.langCode].popupPresetAdded + name);
         }
         this.jsonMgr.updateDict();
         presetInput.value = "";
@@ -936,6 +984,8 @@ installPatch() {
         presetInput.value = "";
         autoResizeTextarea(textarea);
         updateOverlay();
+        errorMsgDiv.textContent = "";
+        errorMsgDiv.style.display = "none";
       };
       panel.querySelector(".nai-btn-toggle").onclick = (e) => {
         const wrapper = panel.querySelector(".nai-textarea-wrapper");
@@ -1114,6 +1164,40 @@ makeListItem(name) {
             <button class="nai-btn-remove">×</button>
             `;
       return wrapper;
+    }
+showNotification(message) {
+      if (!this.panel) return;
+      const oldNotification = this.panel.querySelector(".nai-preset-notification");
+      if (oldNotification) {
+        oldNotification.remove();
+      }
+      const notification = document.createElement("div");
+      notification.className = "nai-preset-notification";
+      notification.textContent = message;
+      this.panel.appendChild(notification);
+      const addBtn = this.panel.querySelector(".nai-btn-add");
+      if (addBtn) {
+        const notifRect = notification.getBoundingClientRect();
+        const btnRect = addBtn.getBoundingClientRect();
+        const panelRect = this.panel.getBoundingClientRect();
+        const newTop = btnRect.top - panelRect.top - notifRect.height - 17;
+        const panelPaddingLeft = 15;
+        const panelPaddingRight = 15;
+        const centeredLeft = btnRect.left - panelRect.left + btnRect.width / 2 - notifRect.width / 2;
+        const minLeft = panelPaddingLeft;
+        const maxLeft = panelRect.width - panelPaddingRight - notifRect.width;
+        const newLeft = Math.min(maxLeft, Math.max(minLeft, centeredLeft));
+        notification.style.top = `${newTop}px`;
+        notification.style.left = `${newLeft}px`;
+      } else {
+        notification.style.top = "10px";
+        notification.style.right = "15px";
+      }
+      setTimeout(() => {
+        if (notification.isConnected) {
+          notification.remove();
+        }
+      }, 1500);
     }
   }
   class PromptBoxObserver {

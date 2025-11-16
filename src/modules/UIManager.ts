@@ -90,6 +90,8 @@ export class UIManager {
                 <div class="nai-textarea-overlay"></div>
             </div>
 
+            <div class="nai-preset-errormsg"></div>
+
             <div class="nai-preset-controls">
                 <input  class="nai-preset-input" placeholder="Preset name">
                 <button class="nai-btn nai-btn-add">ADD</button>
@@ -113,6 +115,7 @@ export class UIManager {
         const textarea = panel.querySelector('.nai-preset-textarea') as HTMLTextAreaElement;
         const overlay = panel.querySelector('.nai-textarea-overlay') as HTMLDivElement;
         const presetInput = panel.querySelector('.nai-preset-input') as HTMLInputElement;
+        const errorMsgDiv = panel.querySelector('.nai-preset-errormsg') as HTMLDivElement;
 
         const updateOverlay = () => {
             const text = textarea.value;
@@ -159,7 +162,44 @@ export class UIManager {
             .forEach(k => {
                 const presetName = k.slice(CONST.PREFIX.length);
                 list.appendChild(this.makeListItem(presetName));
-            });
+            }
+        );
+
+        /* helper to auto scroll */
+        const scrollItemIntoView = (item: HTMLElement) => {
+            if (!item) return;
+            if (list.scrollHeight > list.clientHeight) {
+                item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        };
+
+        /* Preset name validation handler */
+        const validationRe = /^[A-Za-z0-9_.-]+$/;
+        const maxNameLength = 36;
+        const validatePresetName = (name: string): string | null => {
+            if (name.length > maxNameLength) {
+                return uiMessageTranslations[this.langCode].presetLengthError;
+            }
+            if (name.includes('__')) {
+                return uiMessageTranslations[this.langCode].presetNameError;
+            }
+            if (name && !validationRe.test(name)) {
+                return uiMessageTranslations[this.langCode].presetNameError;
+            }
+            return null;
+        };
+        presetInput.addEventListener('input', () => {
+            const name = presetInput.value;
+            const error = validatePresetName(name);
+            
+            if (error) {
+                errorMsgDiv.textContent = error;
+                errorMsgDiv.style.display = 'block';
+            } else {
+                errorMsgDiv.textContent = '';
+                errorMsgDiv.style.display = 'none';
+            }
+        });
 
         /* ADD button */
         const addBtn = panel.querySelector('.nai-btn-add') as HTMLButtonElement;
@@ -170,19 +210,17 @@ export class UIManager {
             }
             const name = presetInput.value.trim();
             if (!name) { btnFlashErr(); return; }
-
-            const validationRe = /^[A-Za-z0-9_.-]+$/;
-            if (!validationRe.test(name)) { btnFlashErr(); return; }
-
             const presetText = textarea.value;
             if (!presetText) { btnFlashErr(); return; }
-
             if (name.includes('__')) {
                 alert(
                     messageTranslations[this.langCode].doubleUnderscoreError
                 );
+                btnFlashErr();
                 return;
             }
+            if (validatePresetName(name) !== null) { btnFlashErr(); return; }
+
             const key = CONST.PREFIX + name;
             const alreadyExists = GM_getValue(key, null) !== null;
             GM_setValue(key, presetText);
@@ -190,13 +228,22 @@ export class UIManager {
                 const item = [...list.children]
                     .find(el => (el.querySelector('span') as HTMLSpanElement)?.textContent === name);
                 if(item) {
+                    addBtn.style.animation = 'Flash 0.4s';
+                    setTimeout(() => addBtn.style.animation = '', 400);
+                    scrollItemIntoView(item as HTMLElement);
                     (item as HTMLElement).style.animation = 'Flash 0.4s';
                     setTimeout(() => (item as HTMLElement).style.animation = '', 400);
                 }
+                this.showNotification(uiMessageTranslations[this.langCode].popupPresetUpdated + name);
             } else {
-                list.appendChild(this.makeListItem(name));
+                const newItem = this.makeListItem(name);
+                list.appendChild(newItem);
                 addBtn.style.animation = 'Flash 0.4s';
                 setTimeout(() => addBtn.style.animation = '', 400);
+                (newItem as HTMLElement).style.animation = 'Flash 0.4s';
+                scrollItemIntoView(newItem as HTMLElement);
+                setTimeout(() => (newItem as HTMLElement).style.animation = '', 400);
+                this.showNotification(uiMessageTranslations[this.langCode].popupPresetAdded + name);
             }
             this.jsonMgr.updateDict();
             presetInput.value = '';
@@ -208,6 +255,8 @@ export class UIManager {
             presetInput.value = '';
             autoResizeTextarea(textarea);
             updateOverlay();
+            errorMsgDiv.textContent = '';
+            errorMsgDiv.style.display = 'none';
         };
 
         /* toggle textarea visibility */
@@ -421,5 +470,47 @@ export class UIManager {
             <button class="nai-btn-remove">×</button>
             `;
         return wrapper;
+    }
+
+    /* handler to show popup notification */
+    showNotification(message: string): void {
+        if (!this.panel) return;
+
+        const oldNotification = this.panel.querySelector('.nai-preset-notification');
+        if (oldNotification) {
+            oldNotification.remove();
+        }
+        const notification = document.createElement('div');
+        notification.className = 'nai-preset-notification';
+        notification.textContent = message;
+
+        this.panel.appendChild(notification);
+        const addBtn = this.panel.querySelector('.nai-btn-add') as HTMLButtonElement;
+
+        if (addBtn) {
+            const notifRect = notification.getBoundingClientRect();
+            const btnRect = addBtn.getBoundingClientRect();
+            const panelRect = this.panel.getBoundingClientRect();
+
+            const newTop = (btnRect.top - panelRect.top) - notifRect.height - 17;
+            const panelPaddingLeft = 15;
+            const panelPaddingRight = 15;
+
+            const centeredLeft = (btnRect.left - panelRect.left) + (btnRect.width / 2) - (notifRect.width / 2);
+            const minLeft = panelPaddingLeft;
+            const maxLeft = (panelRect.width - panelPaddingRight) - notifRect.width;
+            const newLeft = Math.min(maxLeft, Math.max(minLeft, centeredLeft));
+
+            notification.style.top = `${newTop}px`;
+            notification.style.left = `${newLeft}px`;
+        } else {
+            notification.style.top = '10px';
+            notification.style.right = '15px';
+        }
+        setTimeout(() => {
+            if (notification.isConnected) {
+                notification.remove();
+            }
+        }, 1500);
     }
 }

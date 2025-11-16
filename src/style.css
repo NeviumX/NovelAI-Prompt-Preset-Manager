@@ -1,9 +1,10 @@
-.nai-preset-panel         {background:#0e0f21;border:1px solid rgb(34, 37, 63);padding:5px 15px;font-size:13px;color:#f0f0f0}
+.nai-preset-panel         {background:#0e0f21;border:1px solid rgb(34, 37, 63);padding:5px 15px;font-size:13px;color:#f0f0f0;}
 .nai-preset-title         {font-weight:700;margin-bottom:10px;font-size:14px;padding:7px 5px 0px;}
 .nai-textarea-wrapper     {position:relative;width:100%;background:#0e0f21;}
 .nai-preset-textarea, .nai-textarea-overlay {width:100%;min-height:80px;max-height:300px;padding:6px;border:none;border-radius:4px;font-size:14px;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:break-word;margin:0;background:transparent;}
 .nai-preset-textarea      {position:relative;z-index:1;color:transparent;caret-color:#f8f8f8;overflow-y:auto;}
 .nai-textarea-overlay     {position:absolute;top:0;left:0;z-index:0;height:100%;pointer-events:none;overflow:hidden;color:#f8f8f8;}
+.nai-preset-errormsg      {display: none;color: #dd6666; font-size: 12px;margin: 5px 0 0 2px;padding: 0 5px;}
 .newline-char             {display:inline-block;color:#dd6666;background:rgba(221,102,102,0.1);border:1px solid rgba(221,102,102,0.5);border-radius:3px;font-weight:bold;padding:0 3px;line-height:1;font-size:12px;vertical-align:middle;user-select:none;}
 .nai-preset-controls      {display:flex;gap:6px;align-items:center;margin:6px 0}
 .nai-preset-input         {flex:1 1 0;padding:4px 6px;border-radius:4px;border:2px solid #262946;background:#0e0f21;color:#f8f8f8}
@@ -41,5 +42,7 @@
 .nai-preset-search-button {width:26px;cursor:pointer;padding:4px 0;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#f8f8f8;}
 .nai-btn-list-toggle      {width:26px;padding:4px 0;font-weight:700}
 .nai-btn:focus-visible:not([data-mouse-clicked]), .nai-preset-search-button:focus-visible:not([data-mouse-clicked]), .nai-gear-btn:focus-visible:not([data-mouse-clicked]), .nai-btn-remove:focus-visible:not([data-mouse-clicked]), .nai-preset-panel input[type="checkbox"]:focus-visible:not([data-mouse-clicked]) {outline:2px solid #f5f3c2; outline-offset:1px; border-radius:4px;}
+.nai-preset-notification  {position: absolute;background: #191b31;border: 2px solid #262946; color: #f5f3c2;padding: 5px 10px;border-radius: 4px;font-size: 12px;z-index: 1000;animation: nai-fade-in-out 1.5s ease-out forwards;pointer-events: none;}
 @keyframes Flash          {0%{background: #f5f3c2} 100%{background: #22253f}}
 @keyframes Flash-Err      {0%{background: rgba(221,102,102,0.5)} 100%{background: #22253f}}
+@keyframes nai-fade-in-out {0% { opacity: 0; transform: translateY(10px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); }100% { opacity: 0; transform: translateY(-10px); } }
