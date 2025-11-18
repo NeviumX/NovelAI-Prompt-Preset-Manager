@@ -328,7 +328,10 @@ export class UIManager {
             });
         };
         searchBox.addEventListener('input', filterPresets);
-        searchBtn.addEventListener('click', filterPresets);
+        searchBtn.addEventListener('click', () => {
+            this.refreshListItems();
+            filterPresets();
+        });
 
         /* toggle preset list visibility */
         (panel.querySelector('.nai-btn-list-toggle') as HTMLButtonElement).onclick = (e) => {
@@ -470,6 +473,21 @@ export class UIManager {
             <button class="nai-btn-remove">×</button>
             `;
         return wrapper;
+    }
+
+    /* helper to refresh preset list entry */
+    refreshListItems(): void {
+        if (!this.panel) return;
+        const list = this.panel.querySelector('.nai-preset-list') as HTMLDivElement;
+        const presetItems = list.querySelectorAll('.nai-preset-item');
+        presetItems.forEach(item => (item as HTMLElement).remove());
+        GM_listValues()
+            .filter(k => k.startsWith(CONST.PREFIX))
+            .forEach(k => {
+                const presetName = k.slice(CONST.PREFIX.length);
+                list.appendChild(this.makeListItem(presetName));
+            }
+        );
     }
 
     /* handler to show popup notification */

@@ -1048,7 +1048,10 @@ installPatch() {
         });
       };
       searchBox.addEventListener("input", filterPresets);
-      searchBtn.addEventListener("click", filterPresets);
+      searchBtn.addEventListener("click", () => {
+        this.refreshListItems();
+        filterPresets();
+      });
       panel.querySelector(".nai-btn-list-toggle").onclick = (e) => {
         const presetList = panel.querySelector(".nai-preset-list");
         const hidden = presetList.style.display === "none";
@@ -1165,6 +1168,18 @@ makeListItem(name) {
             `;
       return wrapper;
     }
+refreshListItems() {
+      if (!this.panel) return;
+      const list = this.panel.querySelector(".nai-preset-list");
+      const presetItems = list.querySelectorAll(".nai-preset-item");
+      presetItems.forEach((item) => item.remove());
+      GM_listValues().filter((k) => k.startsWith(PREFIX)).forEach(
+        (k) => {
+          const presetName = k.slice(PREFIX.length);
+          list.appendChild(this.makeListItem(presetName));
+        }
+      );
+    }
 showNotification(message) {
       if (!this.panel) return;
       const oldNotification = this.panel.querySelector(".nai-preset-notification");
@@ -1267,6 +1282,15 @@ showNotification(message) {
     window.__userLang = userLang.startsWith("ja") ? "ja" : "en";
     window.__naiPmObserver ?? (window.__naiPmObserver = new ProseMirrorObserver(jsonManagerSingleton));
     window.__naiPromptObserver ?? (window.__naiPromptObserver = new PromptBoxObserver());
+    const mediaQuery = window.matchMedia("(max-width: 900px)");
+    const handleLayoutChange = (e) => {
+      if (window.__naiPromptObserver && window.__naiPromptObserver.map) {
+        window.__naiPromptObserver.map.forEach((uiManager) => {
+          uiManager.refreshListItems();
+        });
+      }
+    };
+    mediaQuery.addEventListener("change", handleLayoutChange);
   })();
 
 })();

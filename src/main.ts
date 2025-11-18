@@ -31,4 +31,14 @@ import { PromptBoxObserver } from './modules/PromptBoxObserver';
     window.__naiPromptObserver ??
         (window.__naiPromptObserver = new PromptBoxObserver());
 
+    const mediaQuery = window.matchMedia('(max-width: 900px)');
+    const handleLayoutChange = (e: MediaQueryListEvent) => {
+        if (window.__naiPromptObserver && window.__naiPromptObserver.map) {
+            window.__naiPromptObserver.map.forEach((uiManager) => {
+                uiManager.refreshListItems();
+            });
+        }
+    };
+    mediaQuery.addEventListener('change', handleLayoutChange);
+
 })();
