@@ -102,7 +102,11 @@ export class UIManager {
             <div class="nai-preset-list"></div>
 
             <div class="nai-preset-search">
-                <input class="nai-preset-search-box" placeholder="Filter presets...">
+                <div class="nai-preset-search-wrapper">
+                    <input class="nai-preset-search-box" placeholder="Filter presets...">
+                    <button class="nai-preset-search-clear">×</button>
+                </div>
+                
                 <button class="nai-btn nai-preset-search-button">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                         <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
@@ -314,6 +318,7 @@ export class UIManager {
         /* preset search handler */
         const searchBox = panel.querySelector('.nai-preset-search-box') as HTMLInputElement;
         const searchBtn = panel.querySelector('.nai-preset-search-button') as HTMLButtonElement;
+        const searchClearBtn = panel.querySelector('.nai-preset-search-clear') as HTMLButtonElement;
 
         const filterPresets = () => {
             const searchTerm = searchBox.value.toLowerCase().trim();
@@ -327,10 +332,19 @@ export class UIManager {
                 }
             });
         };
-        searchBox.addEventListener('input', filterPresets);
+        searchBox.addEventListener('input', () => {
+            filterPresets();
+            searchClearBtn.style.display = searchBox.value ? 'flex' : 'none';
+        });
         searchBtn.addEventListener('click', () => {
             this.refreshListItems();
             filterPresets();
+        });
+        searchClearBtn.addEventListener('click', () => {
+            searchBox.value = '';
+            filterPresets();
+            searchClearBtn.style.display = 'none';
+            searchBox.focus();
         });
 
         /* toggle preset list visibility */
@@ -444,7 +458,7 @@ export class UIManager {
         });
 
         /* focus-visible handling */
-        const focusableSelector = '.nai-btn, .nai-preset-search-button, .nai-gear-btn, .nai-preset-panel input[type="checkbox"], .nai-btn-remove';
+        const focusableSelector = '.nai-btn, .nai-preset-search-button, .nai-preset-search-clear, .nai-gear-btn, .nai-preset-panel input[type="checkbox"], .nai-btn-remove';
 
         panel.addEventListener('mousedown', (e) => {
             const target = (e.target as HTMLElement).closest(focusableSelector);

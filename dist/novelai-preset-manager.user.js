@@ -2,7 +2,7 @@
 // @name              NovelAI Prompt Preset / Wildcards Manager
 // @name:ja           NovelAI Prompt Preset / Wildcards Manager
 // @namespace         https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
-// @version           1.4.1
+// @version           1.4.2
 // @author            Nevium7, Gemini 2.5 Pro
 // @description       Script to replace __TOKEN__ with any prompt you want before making a request to the NovelAI API. Also adds a UI to manage presets and wildcards on the image generation page.
 // @description:ja    NovelAI の API にリクエストを行う前に、__TOKEN__ を任意のプロンプトに置き換えるスクリプト。プリセットやワイルドカードを管理するためのUIも画像生成ページに追加します。
@@ -62,11 +62,14 @@
 .nai-popup-header         {display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;}\r
 .nai-info-btn             {display:inline-flex;align-items:center;justify-content:center;color:#f8f8f8;opacity:0.6;transition:opacity .2s ease;}\r
 .nai-info-btn:hover       {opacity:1;}\r
-.nai-preset-search        {display:flex;gap:6px;align-items:center;margin-top:6px;}\r
-.nai-preset-search-box    {flex:1 1 0;padding:4px 6px;border-radius:4px;border:2px solid #262946;background:#0e0f21;color:#f8f8f8}\r
+.nai-preset-search-wrapper {position: relative;flex: 1 1 0;display: flex;align-items: center;}\r
+.nai-preset-search        {display:flex;gap:6px;align-items:center;margin-top:6px;position:relative;}\r
+.nai-preset-search-box    {width:100%;padding:4px 6px;border-radius:4px;border:2px solid #262946;background:#0e0f21;color:#f8f8f8}\r
 .nai-preset-search-button {width:26px;cursor:pointer;padding:4px 0;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#f8f8f8;}\r
+.nai-preset-search-clear  {display: none;position: absolute;right: 4px;top: 0;bottom: 0;margin: auto;height: 20px;width: 20px;border: none;background: transparent;color: #dd6666;font-size: 16px;font-weight: bold;cursor: pointer;line-height: 1;align-items: center;justify-content: center;}\r
+.nai-preset-search-clear:hover {color: #ff8888;}\r
 .nai-btn-list-toggle      {width:26px;padding:4px 0;font-weight:700}\r
-.nai-btn:focus-visible:not([data-mouse-clicked]), .nai-preset-search-button:focus-visible:not([data-mouse-clicked]), .nai-gear-btn:focus-visible:not([data-mouse-clicked]), .nai-btn-remove:focus-visible:not([data-mouse-clicked]), .nai-preset-panel input[type="checkbox"]:focus-visible:not([data-mouse-clicked]) {outline:2px solid #f5f3c2; outline-offset:1px; border-radius:4px;}\r
+.nai-btn:focus-visible:not([data-mouse-clicked]), .nai-preset-search-button:focus-visible:not([data-mouse-clicked]), .nai-preset-search-clear:focus-visible:not([data-mouse-clicked]), .nai-gear-btn:focus-visible:not([data-mouse-clicked]), .nai-btn-remove:focus-visible:not([data-mouse-clicked]), .nai-preset-panel input[type="checkbox"]:focus-visible:not([data-mouse-clicked]) {outline:2px solid #f5f3c2; outline-offset:1px; border-radius:4px;}\r
 .nai-preset-notification  {position: absolute;background: #191b31;border: 2px solid #262946; color: #f5f3c2;padding: 5px 10px;border-radius: 4px;font-size: 12px;z-index: 1000;animation: nai-fade-in-out 1.5s ease-out forwards;pointer-events: none;}\r
 @keyframes Flash          {0%{background: #f5f3c2} 100%{background: #22253f}}\r
 @keyframes Flash-Err      {0%{background: rgba(221,102,102,0.5)} 100%{background: #22253f}}\r
@@ -841,7 +844,11 @@ installPatch() {
             <div class="nai-preset-list"></div>
 
             <div class="nai-preset-search">
-                <input class="nai-preset-search-box" placeholder="Filter presets...">
+                <div class="nai-preset-search-wrapper">
+                    <input class="nai-preset-search-box" placeholder="Filter presets...">
+                    <button class="nai-preset-search-clear">×</button>
+                </div>
+                
                 <button class="nai-btn nai-preset-search-button">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                         <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
@@ -1035,6 +1042,7 @@ installPatch() {
       });
       const searchBox = panel.querySelector(".nai-preset-search-box");
       const searchBtn = panel.querySelector(".nai-preset-search-button");
+      const searchClearBtn = panel.querySelector(".nai-preset-search-clear");
       const filterPresets = () => {
         const searchTerm = searchBox.value.toLowerCase().trim();
         const presetItems = list.querySelectorAll(".nai-preset-item");
@@ -1047,10 +1055,19 @@ installPatch() {
           }
         });
       };
-      searchBox.addEventListener("input", filterPresets);
+      searchBox.addEventListener("input", () => {
+        filterPresets();
+        searchClearBtn.style.display = searchBox.value ? "flex" : "none";
+      });
       searchBtn.addEventListener("click", () => {
         this.refreshListItems();
         filterPresets();
+      });
+      searchClearBtn.addEventListener("click", () => {
+        searchBox.value = "";
+        filterPresets();
+        searchClearBtn.style.display = "none";
+        searchBox.focus();
       });
       panel.querySelector(".nai-btn-list-toggle").onclick = (e) => {
         const presetList = panel.querySelector(".nai-preset-list");
@@ -1143,7 +1160,7 @@ Imported ${importCount} new preset(s)!`);
         GM_setValue(DEBUG_MODE_TRG, debugChk.checked);
         window.dispatchEvent(new CustomEvent("naiDebugUpdate", { detail: debugChk.checked }));
       });
-      const focusableSelector = '.nai-btn, .nai-preset-search-button, .nai-gear-btn, .nai-preset-panel input[type="checkbox"], .nai-btn-remove';
+      const focusableSelector = '.nai-btn, .nai-preset-search-button, .nai-preset-search-clear, .nai-gear-btn, .nai-preset-panel input[type="checkbox"], .nai-btn-remove';
       panel.addEventListener("mousedown", (e) => {
         const target = e.target.closest(focusableSelector);
         if (target) {

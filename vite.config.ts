@@ -11,7 +11,7 @@ export default defineConfig({
             'ja':'NovelAI Prompt Preset / Wildcards Manager',
         },
         namespace: 'https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager',
-        version: '1.4.1',
+        version: '1.4.2',
         description: {
             '':'Script to replace __TOKEN__ with any prompt you want before making a request to the NovelAI API. Also adds a UI to manage presets and wildcards on the image generation page.',
             'ja': 'NovelAI の API にリクエストを行う前に、__TOKEN__ を任意のプロンプトに置き換えるスクリプト。プリセットやワイルドカードを管理するためのUIも画像生成ページに追加します。',
