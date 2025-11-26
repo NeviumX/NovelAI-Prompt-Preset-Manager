@@ -394,6 +394,7 @@ export class UIManager {
                 }
                 if (importCount > 0) {
                     console.log(`[NovelAI Prompt Preset Manager]\nImported ${importCount} new preset(s)!`);
+                    alert(messageTranslations[this.langCode].importSuccess.replace('${importCount}', importCount.toString()));
                     this.jsonMgr.updateDict();
                 }
                 fileInput.value = '';

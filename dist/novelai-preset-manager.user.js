@@ -2,7 +2,7 @@
 // @name              NovelAI Prompt Preset / Wildcards Manager
 // @name:ja           NovelAI Prompt Preset / Wildcards Manager
 // @namespace         https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
-// @version           1.4.2
+// @version           1.4.3
 // @author            Nevium7, Gemini 2.5 Pro
 // @description       Script to replace __TOKEN__ with any prompt you want before making a request to the NovelAI API. Also adds a UI to manage presets and wildcards on the image generation page.
 // @description:ja    NovelAI の API にリクエストを行う前に、__TOKEN__ を任意のプロンプトに置き換えるスクリプト。プリセットやワイルドカードを管理するためのUIも画像生成ページに追加します。
@@ -63,7 +63,7 @@
 .nai-info-btn             {display:inline-flex;align-items:center;justify-content:center;color:#f8f8f8;opacity:0.6;transition:opacity .2s ease;}\r
 .nai-info-btn:hover       {opacity:1;}\r
 .nai-preset-search-wrapper {position: relative;flex: 1 1 0;display: flex;align-items: center;}\r
-.nai-preset-search        {display:flex;gap:6px;align-items:center;margin-top:6px;position:relative;}\r
+.nai-preset-search        {display:flex;gap:6px;align-items:center;margin-top:6px;}\r
 .nai-preset-search-box    {width:100%;padding:4px 6px;border-radius:4px;border:2px solid #262946;background:#0e0f21;color:#f8f8f8}\r
 .nai-preset-search-button {width:26px;cursor:pointer;padding:4px 0;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#f8f8f8;}\r
 .nai-preset-search-clear  {display: none;position: absolute;right: 4px;top: 0;bottom: 0;margin: auto;height: 20px;width: 20px;border: none;background: transparent;color: #dd6666;font-size: 16px;font-weight: bold;cursor: pointer;line-height: 1;align-items: center;justify-content: center;}\r
@@ -81,7 +81,7 @@
     TARGET_PATH;
     _dictCache;
     _patchInstalled;
-constructor() {
+    constructor() {
       this.TARGET_PATH = "/ai/generate-image";
       this._dictCache = this.buildDict();
       this.installPatch();
@@ -727,6 +727,7 @@ installPatch() {
     "en": {
       doubleUnderscoreError: "[NovelAI Prompt Preset Manager]\nERROR: Do not use double-underscore (__) to the preset name.\n\nThis symbol should only be used to enclose actual preset tokens.",
       importFailure: "[NovelAI Prompt Preset Manager]\nFailed to import: ",
+      importSuccess: "[NovelAI Prompt Preset Manager]\nImported ${importCount} new preset(s).\nAlready existing presets are not overwritten.",
       confirmDeletePreset: "[NovelAI Prompt Preset Manager]\nDelete preset?: ",
       confirmDeleteAllPresets: "[NovelAI Prompt Preset Manager]\nDelete ALL saved presets?",
       allPresetsDeleted: "[NovelAI Prompt Preset Manager]\nAll presets deleted."
@@ -734,6 +735,7 @@ installPatch() {
     "ja": {
       doubleUnderscoreError: "[NovelAI Prompt Preset Manager]\nエラー: プリセット名にダブルアンダースコア (__) を使用しないでください。\n\nこの記号は、実際のプリセットトークンを囲むときだけに使用する必要があります。",
       importFailure: "[NovelAI Prompt Preset Manager]\nインポートに失敗しました: ",
+      importSuccess: "[NovelAI Prompt Preset Manager]\n${importCount}個の新しいプリセットをインポートしました。\n既に存在していたものは上書きされていません。",
       confirmDeletePreset: "[NovelAI Prompt Preset Manager]\nプリセットを削除しますか？: ",
       confirmDeleteAllPresets: "[NovelAI Prompt Preset Manager]\n保存されているすべてのプリセットを削除しますか？",
       allPresetsDeleted: "[NovelAI Prompt Preset Manager]\nすべてのプリセットが削除されました。"
@@ -1112,6 +1114,7 @@ installPatch() {
           if (importCount > 0) {
             console.log(`[NovelAI Prompt Preset Manager]
 Imported ${importCount} new preset(s)!`);
+            alert(messageTranslations[this.langCode].importSuccess.replace("${importCount}", importCount.toString()));
             this.jsonMgr.updateDict();
           }
           fileInput.value = "";

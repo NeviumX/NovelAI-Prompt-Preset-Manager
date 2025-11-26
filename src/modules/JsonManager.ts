@@ -3,7 +3,7 @@ import * as CONST from '../constants';
 export class JsonManager {
     TARGET_PATH: string;
     _dictCache: Record<string, string>;
-    _patchInstalled?: boolean; // 
+    _patchInstalled?: boolean;
 
     constructor() {
         this.TARGET_PATH = '/ai/generate-image';
