@@ -23,7 +23,14 @@ export class UIManager {
         this.jsonMgr = jsonManagerSingleton;
     }
     getLangCode(): keyof typeof messageTranslations {
-        if (window.__userLang){ return window.__userLang.startsWith('ja') ? 'ja' : 'en'; }
+        if (window.__userLang){
+            if (window.__userLang.startsWith('ja')) return 'ja';
+            if (window.__userLang.startsWith('zh')) return 'zh';
+            if (window.__userLang.startsWith('es')) return 'es';
+            if (window.__userLang.startsWith('id')) return 'id';
+            if (window.__userLang.startsWith('pt')) return 'pt';
+            return 'en';
+        }
         else return 'en';
     }
     injectUI(root: Element) {

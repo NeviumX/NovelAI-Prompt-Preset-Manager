@@ -1,11 +1,19 @@
 // ==UserScript==
 // @name              NovelAI Prompt Preset / Wildcards Manager
 // @name:ja           NovelAI Prompt Preset / Wildcards Manager
+// @name:zh           NovelAI Prompt Preset / Wildcards Manager
+// @name:es           NovelAI Prompt Preset / Wildcards Manager
+// @name:id           NovelAI Prompt Preset / Wildcards Manager
+// @name:pt           NovelAI Prompt Preset / Wildcards Manager
 // @namespace         https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
-// @version           1.4.3
+// @version           1.4.4
 // @author            Nevium7, Gemini 2.5 Pro
 // @description       Script to replace __TOKEN__ with any prompt you want before making a request to the NovelAI API. Also adds a UI to manage presets and wildcards on the image generation page.
 // @description:ja    NovelAI の API にリクエストを行う前に、__TOKEN__ を任意のプロンプトに置き換えるスクリプト。プリセットやワイルドカードを管理するためのUIも画像生成ページに追加します。
+// @description:zh    NovelAI 的 API 在請求之前，將 __TOKEN__ 替換為您想要的任何提示詞。還會在圖片生成頁面添加一個 UI 來管理預設和通配詞。
+// @description:es    Script para reemplazar __TOKEN__ con cualquier prompt que desees antes de hacer una solicitud a la API de NovelAI. También agrega una UI para gestionar los presets y wildcards en la página de generación de imágenes.
+// @description:id    Script untuk mengganti __TOKEN__ dengan prompt yang Anda inginkan sebelum membuat permintaan ke API NovelAI. Juga menambahkan UI untuk mengelola presets dan wildcards di halaman generasi gambar.
+// @description:pt    Script para substituir __TOKEN__ com qualquer prompt que você desejar antes de fazer uma requisição à API da NovelAI. Também adiciona uma UI para gerenciar presets e wildcards na página de geração de imagens.
 // @license           MIT
 // @copyright         Nevium7
 // @icon              https://novelai.net/icons/novelai-round.png
@@ -739,6 +747,38 @@ installPatch() {
       confirmDeletePreset: "[NovelAI Prompt Preset Manager]\nプリセットを削除しますか？: ",
       confirmDeleteAllPresets: "[NovelAI Prompt Preset Manager]\n保存されているすべてのプリセットを削除しますか？",
       allPresetsDeleted: "[NovelAI Prompt Preset Manager]\nすべてのプリセットが削除されました。"
+    },
+    "zh": {
+      doubleUnderscoreError: "[NovelAI Prompt Preset Manager]\n错误：预设名称中不能使用双下划线 (__)。\n此符号仅用于包围实际的预设令牌。",
+      importFailure: "[NovelAI Prompt Preset Manager]\n导入失败： ",
+      importSuccess: "[NovelAI Prompt Preset Manager]\n成功导入 ${importCount} 个新预设。\n已存在的预设不会被覆盖。",
+      confirmDeletePreset: "[NovelAI Prompt Preset Manager]\n删除预设？: ",
+      confirmDeleteAllPresets: "[NovelAI Prompt Preset Manager]\n删除所有保存的预设？",
+      allPresetsDeleted: "[NovelAI Prompt Preset Manager]\n所有预设已删除。"
+    },
+    "es": {
+      doubleUnderscoreError: "[NovelAI Prompt Preset Manager]\nError: No se puede usar doble subrayado (__) en el nombre del presest.\nEste símbolo solo se debe usar para envolver el token real del presest.",
+      importFailure: "[NovelAI Prompt Preset Manager]\nError al importar: ",
+      importSuccess: "[NovelAI Prompt Preset Manager]\nSe importaron ${importCount} nuevos presest.\nLos presest existentes no se sobrescriben.",
+      confirmDeletePreset: "[NovelAI Prompt Preset Manager]\nEliminar presest? ",
+      confirmDeleteAllPresets: "[NovelAI Prompt Preset Manager]\nEliminar todos los presest guardados?",
+      allPresetsDeleted: "[NovelAI Prompt Preset Manager]\nTodos los presest se han eliminado."
+    },
+    "id": {
+      doubleUnderscoreError: "[NovelAI Prompt Preset Manager]\nError: Tidak boleh menggunakan double underscore (__) dalam nama presest.\nSimbol ini hanya boleh digunakan untuk mengelilingi token sebenar presest.",
+      importFailure: "[NovelAI Prompt Preset Manager]\nGagal mengimpor: ",
+      importSuccess: "[NovelAI Prompt Preset Manager]\n${importCount} presest baru berhasil diimpor.\nPresest yang ada tidak akan disetel ulang.",
+      confirmDeletePreset: "[NovelAI Prompt Preset Manager]\nHapus presest? ",
+      confirmDeleteAllPresets: "[NovelAI Prompt Preset Manager]\nHapus semua presest yang disimpan?",
+      allPresetsDeleted: "[NovelAI Prompt Preset Manager]\nSemua presest telah dihapus."
+    },
+    "pt": {
+      doubleUnderscoreError: "[NovelAI Prompt Preset Manager]\nErro: Não é possível usar sublinhado duplo (__) no nome do presest.\nEste símbolo deve ser usado apenas para envolver o token real do presest.",
+      importFailure: "[NovelAI Prompt Preset Manager]\nErro ao importar: ",
+      importSuccess: "[NovelAI Prompt Preset Manager]\n${importCount} presest novos foram importados.\nOs presest existentes não serão sobrescritos.",
+      confirmDeletePreset: "[NovelAI Prompt Preset Manager]\nExcluir presest? ",
+      confirmDeleteAllPresets: "[NovelAI Prompt Preset Manager]\nExcluir todos os presest salvos?",
+      allPresetsDeleted: "[NovelAI Prompt Preset Manager]\nTodos os presest foram excluídos."
     }
   };
   const uiMessageTranslations = {
@@ -757,6 +797,38 @@ installPatch() {
       tooltipRemainToken: "メタデータにプリセットトークンを残すかどうかを設定します。",
       popupPresetAdded: "プリセットが追加されました。⇒ ",
       popupPresetUpdated: "プリセットが更新されました。⇒ "
+    },
+    "zh": {
+      presetNameError: "预设名称包含无效字符。",
+      presetLengthError: "预设名称过长。",
+      tooltipEnableDebugLog: "将调试日志输出到控制台。可以在 devtools 中查看。",
+      tooltipRemainToken: "设置是否在元数据中保留预设令牌。",
+      popupPresetAdded: "预设已添加。⇒ ",
+      popupPresetUpdated: "预设已更新。⇒ "
+    },
+    "es": {
+      presetNameError: "El nombre del presest contiene caracteres inválidos.",
+      presetLengthError: "El nombre del presest es demasiado largo.",
+      tooltipEnableDebugLog: "Se imprimen los registros de depuración en la consola. Se pueden verificar desde devtools.",
+      tooltipRemainToken: "Se establece si se deja el token del presest en el metadato.",
+      popupPresetAdded: "Presest agregado.⇒ ",
+      popupPresetUpdated: "Presest actualizado.⇒ "
+    },
+    "id": {
+      presetNameError: "Nama presest berisi karakter yang tidak valid.",
+      presetLengthError: "Nama presest terlalu panjang.",
+      tooltipEnableDebugLog: "Mencetak log debug ke konsol. Bisa dicek dari devtools.",
+      tooltipRemainToken: "Menetapkan apakah token presest di simpan di metadata.",
+      popupPresetAdded: "Presest ditambahkan.⇒ ",
+      popupPresetUpdated: "Presest diperbarui.⇒ "
+    },
+    "pt": {
+      presetNameError: "O nome do presest contém caracteres inválidos.",
+      presetLengthError: "O nome do presest é muito longo.",
+      tooltipEnableDebugLog: "Imprime os registros de depuração na console. Pode ser verificado do devtools.",
+      tooltipRemainToken: "Define se o token do presest é salvo no metadado.",
+      popupPresetAdded: "Presest adicionado.⇒ ",
+      popupPresetUpdated: "Presest atualizado.⇒ "
     }
   };
   class UIManager {
@@ -771,7 +843,12 @@ installPatch() {
     }
     getLangCode() {
       if (window.__userLang) {
-        return window.__userLang.startsWith("ja") ? "ja" : "en";
+        if (window.__userLang.startsWith("ja")) return "ja";
+        if (window.__userLang.startsWith("zh")) return "zh";
+        if (window.__userLang.startsWith("es")) return "es";
+        if (window.__userLang.startsWith("id")) return "id";
+        if (window.__userLang.startsWith("pt")) return "pt";
+        return "en";
       } else return "en";
     }
     injectUI(root) {
@@ -1299,7 +1376,7 @@ showNotification(message) {
       console.error("[PresetMgr] MessagePack was not attached to page context (unsafeWindow)!");
     }
     const userLang = navigator.languages && navigator.languages[0] || navigator.language || "en";
-    window.__userLang = userLang.startsWith("ja") ? "ja" : "en";
+    window.__userLang = userLang;
     window.__naiPmObserver ?? (window.__naiPmObserver = new ProseMirrorObserver(jsonManagerSingleton));
     window.__naiPromptObserver ?? (window.__naiPromptObserver = new PromptBoxObserver());
     const mediaQuery = window.matchMedia("(max-width: 900px)");

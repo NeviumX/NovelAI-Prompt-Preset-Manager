@@ -24,7 +24,7 @@ import { PromptBoxObserver } from './modules/PromptBoxObserver';
     }
 
     const userLang = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
-    window.__userLang = userLang.startsWith('ja') ? 'ja' : 'en';
+    window.__userLang = userLang;
 
     window.__naiPmObserver ??
         (window.__naiPmObserver = new ProseMirrorObserver(jsonManagerSingleton));
