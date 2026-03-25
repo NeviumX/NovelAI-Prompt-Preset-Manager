@@ -76,7 +76,22 @@ export class JsonManager {
                     if (!body) return origFetch.call(this, input, init);
 
                     console.log('[NovelAI Prompt Preset Manager] Intercepting POST to ${TARGET}');
-                    const bodyText = typeof body === 'string' ? body : await new Response(body).text();
+                    const isFormData = body instanceof FormData;
+                    let bodyText;
+                    if (isFormData) {
+                        const blob = body.get('request');
+                        if (blob instanceof Blob) {
+                            bodyText = await blob.text();
+                        } else if (typeof blob === 'string') {
+                            bodyText = blob;
+                        } else {
+                            debugLog('[PresetMgr] FormData "request" part not found. Skipping.');
+                            return origFetch.call(this, input, init);
+                        }
+                        debugLog('[PresetMgr] Extracted JSON from FormData "request" part.');
+                    } else {
+                        bodyText = typeof body === 'string' ? body : await new Response(body).text();
+                    }
 
                     if (window.__naiRemain) {
                         try {
@@ -99,12 +114,29 @@ export class JsonManager {
                         debugLog('[PresetMgr] No changes in body, skipping patching.'); 
                         return origFetch.call(this, input, init);
                     }
+
+                    let finalBody;
+                    if (isFormData) {
+                        const newForm = new FormData();
+                        for (const [key, value] of body.entries()) {
+                            if (key === 'request') {
+                                newForm.set(key, new Blob([modifiedBody], { type: 'application/json' }), 'blob');
+                            } else {
+                                newForm.set(key, value);
+                            }
+                        }
+                        finalBody = newForm;
+                        debugLog('[PresetMgr] Rebuilt FormData with modified JSON.');
+                    } else {
+                        finalBody = modifiedBody;
+                    }
+
                     let finalInput, finalInit;
                     if (typeof input === 'string') {
                         finalInput = input;
-                        finalInit = {...init, body: modifiedBody};
+                        finalInit = {...init, body: finalBody};
                     } else {
-                        finalInput = new Request(input, { body: modifiedBody });
+                        finalInput = new Request(input, { body: finalBody });
                         finalInit = undefined;
                     }
 

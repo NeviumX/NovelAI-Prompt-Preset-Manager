@@ -6,7 +6,7 @@
 // @name:id           NovelAI Prompt Preset / Wildcards Manager
 // @name:pt           NovelAI Prompt Preset / Wildcards Manager
 // @namespace         https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
-// @version           1.4.4
+// @version           1.4.5
 // @author            Nevium7, Gemini 2.5 Pro
 // @description       Script to replace __TOKEN__ with any prompt you want before making a request to the NovelAI API. Also adds a UI to manage presets and wildcards on the image generation page.
 // @description:ja    NovelAI の API にリクエストを行う前に、__TOKEN__ を任意のプロンプトに置き換えるスクリプト。プリセットやワイルドカードを管理するためのUIも画像生成ページに追加します。
@@ -153,7 +153,22 @@ installPatch() {
                     if (!body) return origFetch.call(this, input, init);
 
                     console.log('[NovelAI Prompt Preset Manager] Intercepting POST to ${TARGET}');
-                    const bodyText = typeof body === 'string' ? body : await new Response(body).text();
+                    const isFormData = body instanceof FormData;
+                    let bodyText;
+                    if (isFormData) {
+                        const blob = body.get('request');
+                        if (blob instanceof Blob) {
+                            bodyText = await blob.text();
+                        } else if (typeof blob === 'string') {
+                            bodyText = blob;
+                        } else {
+                            debugLog('[PresetMgr] FormData "request" part not found. Skipping.');
+                            return origFetch.call(this, input, init);
+                        }
+                        debugLog('[PresetMgr] Extracted JSON from FormData "request" part.');
+                    } else {
+                        bodyText = typeof body === 'string' ? body : await new Response(body).text();
+                    }
 
                     if (window.__naiRemain) {
                         try {
@@ -176,12 +191,29 @@ installPatch() {
                         debugLog('[PresetMgr] No changes in body, skipping patching.'); 
                         return origFetch.call(this, input, init);
                     }
+
+                    let finalBody;
+                    if (isFormData) {
+                        const newForm = new FormData();
+                        for (const [key, value] of body.entries()) {
+                            if (key === 'request') {
+                                newForm.set(key, new Blob([modifiedBody], { type: 'application/json' }), 'blob');
+                            } else {
+                                newForm.set(key, value);
+                            }
+                        }
+                        finalBody = newForm;
+                        debugLog('[PresetMgr] Rebuilt FormData with modified JSON.');
+                    } else {
+                        finalBody = modifiedBody;
+                    }
+
                     let finalInput, finalInit;
                     if (typeof input === 'string') {
                         finalInput = input;
-                        finalInit = {...init, body: modifiedBody};
+                        finalInit = {...init, body: finalBody};
                     } else {
-                        finalInput = new Request(input, { body: modifiedBody });
+                        finalInput = new Request(input, { body: finalBody });
                         finalInit = undefined;
                     }
 
