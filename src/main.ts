@@ -3,6 +3,7 @@ import cssString from './style.css?raw';
 import { jsonManagerSingleton } from './modules/JsonManager';
 import { ProseMirrorObserver } from './modules/ProseMirrorObserver';
 import { PromptBoxObserver } from './modules/PromptBoxObserver';
+import { debugLog } from './modules/debugLog';
 
 (function () {
     'use strict';
@@ -11,14 +12,14 @@ import { PromptBoxObserver } from './modules/PromptBoxObserver';
 
     if (typeof JSZip !== 'undefined') {
         unsafeWindow.JSZip = JSZip;
-        console.log('[PresetMgr] JSZip successfully attached to page context (unsafeWindow).');
+        debugLog('[PresetMgr] JSZip successfully attached to page context (unsafeWindow).');
     } else {
         console.error('[PresetMgr] JSZip was not attached to page context (unsafeWindow)!');
     }
 
     if (typeof MessagePack !== 'undefined') {
         unsafeWindow.MessagePack = MessagePack;
-        console.log('[PresetMgr] MessagePack successfully attached to page context (unsafeWindow).');
+        debugLog('[PresetMgr] MessagePack successfully attached to page context (unsafeWindow).');
     } else {
         console.error('[PresetMgr] MessagePack was not attached to page context (unsafeWindow)!');
     }

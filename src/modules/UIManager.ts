@@ -2,6 +2,8 @@ import { jsonManagerSingleton } from './JsonManager';
 import { JsonManager } from './JsonManager';
 import * as CONST from '../constants';
 import { messageTranslations, uiMessageTranslations } from './translations';
+import { debugLog } from './debugLog';
+import { renderStyledText } from './renderStyledText';
 
 /*
     * イベント
@@ -72,22 +74,25 @@ export class UIManager {
             <div class="nai-popup">
                 <div class="nai-popup-header">
                     <h3 style="margin:0;font-size:16px">Settings</h3>
-                    <a href="https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager?tab=readme-ov-file#features" title="About this script" target="_blank" class="nai-info-btn">
+                    <a href="https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager?tab=readme-ov-file#features" target="_blank" class="nai-info-btn nai-has-tooltip">
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                             <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
                         </svg>
+                        <div class="nai-tooltip"><div class="nai-tooltip-content" data-tooltip-key="tooltipAboutThisScript"></div><div class="nai-tooltip-arrow"></div></div>
                     </a>
                 </div>
                 <button class="nai-btn nai-set-import" style="width:100%;margin-bottom:8px">Import Preset</button>
                 <button class="nai-btn nai-set-export" style="width:100%;margin-bottom:8px">Export Preset</button>
                 <button class="nai-btn nai-set-clear"  style="width:100%;color:red">Clear All Preset</button>
-                <label class="nai-remain-row" data-tooltip="${uiMessageTranslations[this.langCode].tooltipRemainToken}">
+                <label class="nai-remain-row nai-has-tooltip">
                     <input type="checkbox" id="nai-remain-check">
                     <span>Remain Preset Token</span>
+                    <div class="nai-tooltip"><div class="nai-tooltip-content" data-tooltip-key="tooltipRemainToken"></div><div class="nai-tooltip-arrow"></div></div>
                 </label>
-                <label class="nai-remain-row" data-tooltip="${uiMessageTranslations[this.langCode].tooltipEnableDebugLog}">
+                <label class="nai-remain-row nai-has-tooltip">
                     <input type="checkbox" id="nai-debug-mode-check">
                     <span>Enable Debug Logging</span>
+                    <div class="nai-tooltip"><div class="nai-tooltip-content" data-tooltip-key="tooltipEnableDebugLog"></div><div class="nai-tooltip-arrow"></div></div>
                 </label>
                 <input type="file" accept=".json,.txt" class="nai-file-input" style="display:none">
             </div>
@@ -122,6 +127,13 @@ export class UIManager {
                 <button class="nai-btn nai-btn-list-toggle">▴</button>
             </div>
         `;
+
+        /* populate tooltip content with styled text */
+        panel.querySelectorAll<HTMLElement>('.nai-tooltip-content[data-tooltip-key]').forEach(el => {
+            const key = el.dataset.tooltipKey as keyof typeof uiMessageTranslations['en'];
+            const text = uiMessageTranslations[this.langCode][key];
+            if (text) el.appendChild(renderStyledText(text));
+        });
 
         const textarea = panel.querySelector('.nai-preset-textarea') as HTMLTextAreaElement;
         const overlay = panel.querySelector('.nai-textarea-overlay') as HTMLDivElement;
@@ -400,7 +412,7 @@ export class UIManager {
                     return;
                 }
                 if (importCount > 0) {
-                    console.log(`[NovelAI Prompt Preset Manager]\nImported ${importCount} new preset(s)!`);
+                    debugLog(`[NovelAI Prompt Preset Manager]\nImported ${importCount} new preset(s)!`);
                     alert(messageTranslations[this.langCode].importSuccess.replace('${importCount}', importCount.toString()));
                     this.jsonMgr.updateDict();
                 }

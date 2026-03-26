@@ -6,7 +6,7 @@
 // @name:id           NovelAI Prompt Preset / Wildcards Manager
 // @name:pt           NovelAI Prompt Preset / Wildcards Manager
 // @namespace         https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
-// @version           1.4.5
+// @version           1.4.6
 // @author            Nevium7, Gemini 2.5 Pro
 // @description       Script to replace __TOKEN__ with any prompt you want before making a request to the NovelAI API. Also adds a UI to manage presets and wildcards on the image generation page.
 // @description:ja    NovelAI の API にリクエストを行う前に、__TOKEN__ を任意のプロンプトに置き換えるスクリプト。プリセットやワイルドカードを管理するためのUIも画像生成ページに追加します。
@@ -54,16 +54,17 @@
 .nai-gear-btn.active      {color:#e7f3c2;}\r
 .nai-popup                {position:absolute;bottom:100%;right:0;margin-bottom:8px;width:200px;padding:10px;background:#13152c;border:2px solid #262946;border-radius:4px;color:#eee;display:none;z-index:2147483647}\r
 .nai-popup:before         {content:'';position:absolute;bottom:-6px;right:14px;border:6px solid transparent;border-top-color:#262946}\r
-.nai-remain-row           {margin-top:6px;display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;float:left}\r
+.nai-remain-row           {margin-top:6px;display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;float:left;user-select:none;}\r
 .nai-remain-row input[type="checkbox"] {margin: 6px; accent-color: #f5f3c2; cursor: pointer;}\r
 .nai-remain-row:hover     {cursor: pointer;}\r
-.nai-remain-row[data-tooltip] {position: relative;}\r
-.nai-remain-row[data-tooltip]::before,\r
-.nai-remain-row[data-tooltip]::after {display: none;position: absolute;left: 50%;transform: translateX(-50%);z-index: 100;}\r
-.nai-remain-row[data-tooltip]::before {content: attr(data-tooltip);width: 250px;bottom: 100%;margin-bottom: 8px;padding: 6px 8px;background: #13152c;border: 2px solid #262946;border-radius: 4px;color: #eee;font-size: 12px;white-space: normal;text-align: left;}\r
-.nai-remain-row[data-tooltip]::after {content: '';bottom: 100%;margin-bottom: 2px;border: 6px solid transparent;border-top-color: #262946;}\r
-.nai-remain-row[data-tooltip]:hover::before,\r
-.nai-remain-row[data-tooltip]:hover::after {display: block;}\r
+.nai-has-tooltip          {position: relative;}\r
+.nai-tooltip              {display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:70%;z-index:100;pointer-events:none;}\r
+.nai-has-tooltip:hover .nai-tooltip {display:block;}\r
+.nai-tooltip-content      {width:max-content;max-width:250px;padding:6px 8px;background:#13152c;border:2px solid #262946;border-radius:4px;color:#eee;font-size:12px;white-space:pre-wrap;text-align:left;}\r
+.nai-tooltip-arrow        {width:0;height:0;margin:0 auto;border:6px solid transparent;border-top-color:#262946;}\r
+.nai-info-btn .nai-tooltip {left:auto;right:0;transform:none;}\r
+.nai-info-btn .nai-tooltip-arrow {margin:0 6px 0 auto;}\r
+.nai-text-red-bold        {color:#dd6666;font-weight:700;}\r
 .nai-suggest-box          {position:fixed;z-index:2147483647;background:#191b31;border:2px solid #262946;border-radius:4px;max-height:180px;overflow-y:auto;font-size:13px;color:#eee}\r
 .nai-suggest-item         {padding:4px 8px;cursor:pointer;border:1px solid rgb(34,37,63);border-radius:4px;transition:border-color .3s ease,background-color .3s ease}\r
 .nai-suggest-item.active  {background-color: #323658ff;border-color: #f5f3c2;transition:background-color .3s ease,border-color .3s ease}\r
@@ -85,6 +86,11 @@
   const PREFIX = "naiPromptPreset:";
   const TOKEN_REMAIN_TRG = "naiRemainTokenTrigger";
   const DEBUG_MODE_TRG = "debugModeTrigger";
+  function debugLog(...args) {
+    if (GM_getValue(DEBUG_MODE_TRG, false)) {
+      console.log(...args);
+    }
+  }
   class JsonManager {
     TARGET_PATH;
     _dictCache;
@@ -97,7 +103,7 @@
 buildDict() {
       const dict = {};
       GM_listValues().filter((k) => k.startsWith(PREFIX)).forEach((k) => dict[k.slice(PREFIX.length)] = GM_getValue(k, ""));
-      console.log("[NovelAI Prompt Preset Manager] Preset dict built.");
+      debugLog("[NovelAI Prompt Preset Manager] Preset dict built.");
       return dict;
     }
 installPatch() {
@@ -152,7 +158,7 @@ installPatch() {
                     const body = init?.body || (input instanceof Request ? input.body : null);
                     if (!body) return origFetch.call(this, input, init);
 
-                    console.log('[NovelAI Prompt Preset Manager] Intercepting POST to ${TARGET}');
+                    debugLog('[NovelAI Prompt Preset Manager] Intercepting POST to ${TARGET}');
                     const isFormData = body instanceof FormData;
                     let bodyText;
                     if (isFormData) {
@@ -458,7 +464,7 @@ installPatch() {
                     p += 12 + readUint32(data, p);
                 }
                 if (modified) {
-                    console.log('[NovelAI Prompt Preset Manager] PNG metadata patching finished.');
+                    debugLog('[NovelAI Prompt Preset Manager] PNG metadata patching finished.');
                     window.__naiLastPromptData = null;
                     return data.buffer;
                 }
@@ -481,7 +487,7 @@ installPatch() {
       scr.textContent = patchCode;
       document.documentElement.appendChild(scr);
       scr.remove();
-      console.log("[NovelAI Prompt Preset Manager] Patches installed to handle JSON/PNG.");
+      debugLog("[NovelAI Prompt Preset Manager] Patches installed to handle JSON/PNG.");
     }
     updateDict() {
       this._dictCache = this.buildDict();
@@ -818,7 +824,8 @@ installPatch() {
       presetNameError: "The preset name contains invalid characters.",
       presetLengthError: "The preset name is too long.",
       tooltipEnableDebugLog: "Outputs debug logs to the console. Can be checked from devtools.",
-      tooltipRemainToken: "Sets whether to leave the preset token in the metadata.",
+      tooltipRemainToken: "Sets whether to leave the preset token in the metadata. Supports [redBold]PNG only[/redBold].",
+      tooltipAboutThisScript: "About this script",
       popupPresetAdded: "Preset added.⇒ ",
       popupPresetUpdated: "Preset updated.⇒ "
     },
@@ -826,7 +833,8 @@ installPatch() {
       presetNameError: "プリセット名に使用できない文字が含まれています。",
       presetLengthError: "プリセット名が長すぎます。",
       tooltipEnableDebugLog: "コンソールにデバッグログを出力します。devtoolsから確認できます。",
-      tooltipRemainToken: "メタデータにプリセットトークンを残すかどうかを設定します。",
+      tooltipRemainToken: "メタデータにプリセットトークンを残すかどうかを設定します。\n[redBold]PNGのみ[/redBold]に対応しています。",
+      tooltipAboutThisScript: "このスクリプトについて",
       popupPresetAdded: "プリセットが追加されました。⇒ ",
       popupPresetUpdated: "プリセットが更新されました。⇒ "
     },
@@ -834,7 +842,8 @@ installPatch() {
       presetNameError: "预设名称包含无效字符。",
       presetLengthError: "预设名称过长。",
       tooltipEnableDebugLog: "将调试日志输出到控制台。可以在 devtools 中查看。",
-      tooltipRemainToken: "设置是否在元数据中保留预设令牌。",
+      tooltipRemainToken: "设置是否在元数据中保留预设令牌。\n支持 [redBold]PNG[/redBold]。",
+      tooltipAboutThisScript: "关于此脚本",
       popupPresetAdded: "预设已添加。⇒ ",
       popupPresetUpdated: "预设已更新。⇒ "
     },
@@ -842,7 +851,8 @@ installPatch() {
       presetNameError: "El nombre del presest contiene caracteres inválidos.",
       presetLengthError: "El nombre del presest es demasiado largo.",
       tooltipEnableDebugLog: "Se imprimen los registros de depuración en la consola. Se pueden verificar desde devtools.",
-      tooltipRemainToken: "Se establece si se deja el token del presest en el metadato.",
+      tooltipRemainToken: "Se establece si se deja el token del presest en el metadato.\nSoporta [redBold]PNG[/redBold].",
+      tooltipAboutThisScript: "Acerca de este script",
       popupPresetAdded: "Presest agregado.⇒ ",
       popupPresetUpdated: "Presest actualizado.⇒ "
     },
@@ -850,7 +860,8 @@ installPatch() {
       presetNameError: "Nama presest berisi karakter yang tidak valid.",
       presetLengthError: "Nama presest terlalu panjang.",
       tooltipEnableDebugLog: "Mencetak log debug ke konsol. Bisa dicek dari devtools.",
-      tooltipRemainToken: "Menetapkan apakah token presest di simpan di metadata.",
+      tooltipRemainToken: "Menetapkan apakah token presest di simpan di metadata.\nMendukung [redBold]PNG[/redBold].",
+      tooltipAboutThisScript: "Tentang skrip ini",
       popupPresetAdded: "Presest ditambahkan.⇒ ",
       popupPresetUpdated: "Presest diperbarui.⇒ "
     },
@@ -858,11 +869,39 @@ installPatch() {
       presetNameError: "O nome do presest contém caracteres inválidos.",
       presetLengthError: "O nome do presest é muito longo.",
       tooltipEnableDebugLog: "Imprime os registros de depuração na console. Pode ser verificado do devtools.",
-      tooltipRemainToken: "Define se o token do presest é salvo no metadado.",
+      tooltipRemainToken: "Define se o token do presest é salvo no metadado.\nSuporta [redBold]PNG[/redBold].",
+      tooltipAboutThisScript: "Sobre este script",
       popupPresetAdded: "Presest adicionado.⇒ ",
       popupPresetUpdated: "Presest atualizado.⇒ "
     }
   };
+  function renderStyledText(text) {
+    const fragment = document.createDocumentFragment();
+    const tagRegex = /\[redBold\](.*?)\[\/redBold\]/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = tagRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        appendTextWithBreaks(fragment, text.slice(lastIndex, match.index));
+      }
+      const span = document.createElement("span");
+      span.className = "nai-text-red-bold";
+      span.textContent = match[1];
+      fragment.appendChild(span);
+      lastIndex = tagRegex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+      appendTextWithBreaks(fragment, text.slice(lastIndex));
+    }
+    return fragment;
+  }
+  function appendTextWithBreaks(parent, text) {
+    const parts = text.split("\n");
+    parts.forEach((part, i) => {
+      if (part) parent.appendChild(document.createTextNode(part));
+      if (i < parts.length - 1) parent.appendChild(document.createElement("br"));
+    });
+  }
   class UIManager {
     langCode;
     panel;
@@ -918,22 +957,25 @@ installPatch() {
             <div class="nai-popup">
                 <div class="nai-popup-header">
                     <h3 style="margin:0;font-size:16px">Settings</h3>
-                    <a href="https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager?tab=readme-ov-file#features" title="About this script" target="_blank" class="nai-info-btn">
+                    <a href="https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager?tab=readme-ov-file#features" target="_blank" class="nai-info-btn nai-has-tooltip">
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                             <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
                         </svg>
+                        <div class="nai-tooltip"><div class="nai-tooltip-content" data-tooltip-key="tooltipAboutThisScript"></div><div class="nai-tooltip-arrow"></div></div>
                     </a>
                 </div>
                 <button class="nai-btn nai-set-import" style="width:100%;margin-bottom:8px">Import Preset</button>
                 <button class="nai-btn nai-set-export" style="width:100%;margin-bottom:8px">Export Preset</button>
                 <button class="nai-btn nai-set-clear"  style="width:100%;color:red">Clear All Preset</button>
-                <label class="nai-remain-row" data-tooltip="${uiMessageTranslations[this.langCode].tooltipRemainToken}">
+                <label class="nai-remain-row nai-has-tooltip">
                     <input type="checkbox" id="nai-remain-check">
                     <span>Remain Preset Token</span>
+                    <div class="nai-tooltip"><div class="nai-tooltip-content" data-tooltip-key="tooltipRemainToken"></div><div class="nai-tooltip-arrow"></div></div>
                 </label>
-                <label class="nai-remain-row" data-tooltip="${uiMessageTranslations[this.langCode].tooltipEnableDebugLog}">
+                <label class="nai-remain-row nai-has-tooltip">
                     <input type="checkbox" id="nai-debug-mode-check">
                     <span>Enable Debug Logging</span>
+                    <div class="nai-tooltip"><div class="nai-tooltip-content" data-tooltip-key="tooltipEnableDebugLog"></div><div class="nai-tooltip-arrow"></div></div>
                 </label>
                 <input type="file" accept=".json,.txt" class="nai-file-input" style="display:none">
             </div>
@@ -968,6 +1010,11 @@ installPatch() {
                 <button class="nai-btn nai-btn-list-toggle">▴</button>
             </div>
         `;
+      panel.querySelectorAll(".nai-tooltip-content[data-tooltip-key]").forEach((el) => {
+        const key = el.dataset.tooltipKey;
+        const text = uiMessageTranslations[this.langCode][key];
+        if (text) el.appendChild(renderStyledText(text));
+      });
       const textarea = panel.querySelector(".nai-preset-textarea");
       const overlay = panel.querySelector(".nai-textarea-overlay");
       const presetInput = panel.querySelector(".nai-preset-input");
@@ -1221,7 +1268,7 @@ installPatch() {
             return;
           }
           if (importCount > 0) {
-            console.log(`[NovelAI Prompt Preset Manager]
+            debugLog(`[NovelAI Prompt Preset Manager]
 Imported ${importCount} new preset(s)!`);
             alert(messageTranslations[this.langCode].importSuccess.replace("${importCount}", importCount.toString()));
             this.jsonMgr.updateDict();
@@ -1397,13 +1444,13 @@ showNotification(message) {
     GM_addStyle(cssString);
     if (typeof JSZip !== "undefined") {
       unsafeWindow.JSZip = JSZip;
-      console.log("[PresetMgr] JSZip successfully attached to page context (unsafeWindow).");
+      debugLog("[PresetMgr] JSZip successfully attached to page context (unsafeWindow).");
     } else {
       console.error("[PresetMgr] JSZip was not attached to page context (unsafeWindow)!");
     }
     if (typeof MessagePack !== "undefined") {
       unsafeWindow.MessagePack = MessagePack;
-      console.log("[PresetMgr] MessagePack successfully attached to page context (unsafeWindow).");
+      debugLog("[PresetMgr] MessagePack successfully attached to page context (unsafeWindow).");
     } else {
       console.error("[PresetMgr] MessagePack was not attached to page context (unsafeWindow)!");
     }

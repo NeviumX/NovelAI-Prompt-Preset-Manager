@@ -30,7 +30,9 @@ novelai-prompt-preset-manager-release/
 │   │   ├── SuggestionManager.ts     # オートコンプリート (サジェスト) 機能
 │   │   ├── ProseMirrorObserver.ts   # ProseMirror エディタの DOM 監視
 │   │   ├── PromptBoxObserver.ts     # プロンプトボックス (.image-gen-prompt-main) の DOM 監視
-│   │   └── translations.ts         # 多言語翻訳 (en/ja/zh/es/id/pt)
+│   │   ├── translations.ts         # 多言語翻訳 (en/ja/zh/es/id/pt)
+│   │   ├── debugLog.ts             # デバッグログユーティリティ
+│   │   └── renderStyledText.ts     # スタイル付きテキストレンダリング
 │   └── types/
 │       ├── globals.d.ts             # Window 拡張・グローバル型宣言
 │       └── vite.d.ts                # Vite 型定義
@@ -97,7 +99,71 @@ PNG バイナリ操作ヘルパー関数:
 
 ---
 
-### 3. `UIManager.ts` — プリセット管理 UI
+### 3. `debugLog.ts` — デバッグログユーティリティ
+
+ユーザースクリプトコンテキストで使用する条件付きログ出力関数。
+
+```typescript
+export function debugLog(...args: unknown[]): void
+```
+
+- `GM_getValue(DEBUG_MODE_TRG)` を毎回チェックし、デバッグモード有効時のみ `console.log()` を呼ぶ
+- 全モジュール (`main.ts`, `JsonManager.ts`, `UIManager.ts`, Observer 系) で `console.log` の代わりに使用
+- `console.error` はデバッグモードに関係なく常時出力される（`debugLog` は使用しない）
+- インライン patchCode 内にも同名の `debugLog` 関数がページコンテキスト用に定義されている（`window.__naiDebugMode` で制御）
+
+---
+
+### 4. `renderStyledText.ts` — スタイル付きテキストレンダリング
+
+翻訳テキスト中のマークアップタグを解析し、スタイル付き DOM ノードを含む `DocumentFragment` を返す汎用関数。
+
+```typescript
+export function renderStyledText(text: string): DocumentFragment
+```
+
+#### 対応マークアップ
+
+| マークアップ | 出力 | CSS クラス |
+|--|--|--|
+| `[redBold]...[/redBold]` | `<span class="nai-text-red-bold">...</span>` | `color:#dd6666; font-weight:700` |
+| `\n` | `<br>` | — |
+| その他のテキスト | `TextNode` | — |
+
+#### 使用箇所
+
+現在は `UIManager.ts` のツールチップコンテンツ生成で使用。`translations.ts` の `uiMessageTranslations` 内で `[redBold]PNG only[/redBold]` のように記述すると、ツールチップ上で赤太文字として描画される。
+
+#### 将来的な拡張方法
+
+新しいマークアップタグを追加する場合:
+
+1. `renderStyledText.ts` の `tagRegex` を拡張し、新しいパターンを追加
+2. `style.css` に対応する `.nai-text-*` クラスを追加
+3. `translations.ts` 内で新しいタグを使用
+
+**拡張例: `[bold]`, `[warning]` タグの追加**
+
+```typescript
+// renderStyledText.ts に追加
+const tags: { pattern: RegExp; className: string }[] = [
+    { pattern: /\[redBold\](.*?)\[\/redBold\]/g, className: 'nai-text-red-bold' },
+    { pattern: /\[bold\](.*?)\[\/bold\]/g, className: 'nai-text-bold' },
+    { pattern: /\[warning\](.*?)\[\/warning\]/g, className: 'nai-text-warning' },
+];
+```
+
+```css
+/* style.css に追加 */
+.nai-text-bold    { font-weight: 700; }
+.nai-text-warning { color: #f5c242; font-weight: 700; }
+```
+
+> 現在の実装は単一タグ型の正規表現マッチで、ネスト (タグの入れ子) には対応していない。
+
+---
+
+### 5. `UIManager.ts` — プリセット管理 UI
 
 `PromptBoxObserver` によって `.image-gen-prompt-main` の直後に注入される管理パネル。
 
@@ -161,7 +227,7 @@ ProseMirror エディタ上で `__` を入力した際にサジェストボッ�
 
 ---
 
-### 5. `ProseMirrorObserver.ts` — ProseMirror エディタ監視
+### 7. `ProseMirrorObserver.ts` — ProseMirror エディタ監視
 
 - `MutationObserver` で `document.documentElement` を `childList` + `subtree` で監視
 - `div.ProseMirror[contenteditable]` が DOM に追加されると `SuggestionManager` をバインド
@@ -170,7 +236,7 @@ ProseMirror エディタ上で `__` を入力した際にサジェストボッ�
 
 ---
 
-### 6. `PromptBoxObserver.ts` — プロンプトボックス監視
+### 8. `PromptBoxObserver.ts` — プロンプトボックス監視
 
 - `MutationObserver` で `.image-gen-prompt-main` 要素の出現/消滅を監視
 - 出現時に `UIManager` を生成して DOM に挿入、消滅時に `destroy()` で cleanup
@@ -178,7 +244,7 @@ ProseMirror エディタ上で `__` を入力した際にサジェストボッ�
 
 ---
 
-### 7. `translations.ts` — 多言語対応
+### 9. `translations.ts` — 多言語対応
 
 2 つの翻訳辞書をエクスポート:
 
@@ -187,9 +253,11 @@ ProseMirror エディタ上で `__` を入力した際にサジェストボッ�
 | `messageTranslations` | `alert()` / `confirm()` ダイアログメッセージ | en, ja, zh, es, id, pt |
 | `uiMessageTranslations` | UI 上のバリデーションエラー、ツールチップ、通知 | en, ja, zh, es, id, pt |
 
+`uiMessageTranslations` の値には `renderStyledText` 対応のマークアップ (`[redBold]...[/redBold]`) を含めることができる。
+
 ---
 
-### 8. `constants.ts` — 定数
+### 10. `constants.ts` — 定数
 
 | 定数 | 値 | 用途 |
 |--|--|--|
@@ -199,7 +267,7 @@ ProseMirror エディタ上で `__` を入力した際にサジェストボッ�
 
 ---
 
-### 9. `globals.d.ts` — グローバル型宣言
+### 11. `globals.d.ts` — グローバル型宣言
 
 `Window` インターフェースを拡張:
 
@@ -306,6 +374,8 @@ npm run build
 | プリセットリスト | `.nai-preset-list`, `.nai-preset-item`, `.nai-btn-remove` |
 | 検索 | `.nai-preset-search`, `.nai-preset-search-box`, `.nai-preset-search-clear` |
 | 設定ポップアップ | `.nai-popup`, `.nai-gear-btn`, `.nai-remain-row` |
+| ツールチップ | `.nai-has-tooltip`, `.nai-tooltip`, `.nai-tooltip-content`, `.nai-tooltip-arrow` |
+| スタイル付きテキスト | `.nai-text-red-bold` |
 | サジェスト | `.nai-suggest-box`, `.nai-suggest-item` |
 | アニメーション | `Flash` (成功), `Flash-Err` (エラー), `nai-fade-in-out` (通知) |
 

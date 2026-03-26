@@ -1,4 +1,5 @@
 import * as CONST from '../constants';
+import { debugLog } from './debugLog';
 
 export class JsonManager {
     TARGET_PATH: string;
@@ -16,7 +17,7 @@ export class JsonManager {
         GM_listValues()
           .filter(k => k.startsWith(CONST.PREFIX))
           .forEach(k => dict[k.slice(CONST.PREFIX.length)] = GM_getValue(k, ''));
-        console.log('[NovelAI Prompt Preset Manager] Preset dict built.');
+        debugLog('[NovelAI Prompt Preset Manager] Preset dict built.');
         return dict;
     }
     /* ページ側へ JS を注入 */
@@ -75,7 +76,7 @@ export class JsonManager {
                     const body = init?.body || (input instanceof Request ? input.body : null);
                     if (!body) return origFetch.call(this, input, init);
 
-                    console.log('[NovelAI Prompt Preset Manager] Intercepting POST to ${TARGET}');
+                    debugLog('[NovelAI Prompt Preset Manager] Intercepting POST to ${TARGET}');
                     const isFormData = body instanceof FormData;
                     let bodyText;
                     if (isFormData) {
@@ -381,7 +382,7 @@ export class JsonManager {
                     p += 12 + readUint32(data, p);
                 }
                 if (modified) {
-                    console.log('[NovelAI Prompt Preset Manager] PNG metadata patching finished.');
+                    debugLog('[NovelAI Prompt Preset Manager] PNG metadata patching finished.');
                     window.__naiLastPromptData = null;
                     return data.buffer;
                 }
@@ -405,7 +406,7 @@ export class JsonManager {
         scr.textContent = patchCode;
         document.documentElement.appendChild(scr);
         scr.remove();
-        console.log('[NovelAI Prompt Preset Manager] Patches installed to handle JSON/PNG.');
+        debugLog('[NovelAI Prompt Preset Manager] Patches installed to handle JSON/PNG.');
     }
     updateDict(): void {
         this._dictCache = this.buildDict();

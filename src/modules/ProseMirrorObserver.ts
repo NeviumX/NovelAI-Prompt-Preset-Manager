@@ -1,5 +1,6 @@
 import { JsonManager } from './JsonManager';
 import { SuggestionManager } from './SuggestionManager';
+import { debugLog } from './debugLog';
 
 export class ProseMirrorObserver {
     jsonMgr: JsonManager;
@@ -20,14 +21,14 @@ export class ProseMirrorObserver {
         if (this.map.has(node)) return;
         const sm = new SuggestionManager(node, this.jsonMgr);
         this.map.set(node, sm);
-        //console.log('[PresetMgr] SuggestionManager added', node);
+        //debugLog('[PresetMgr] SuggestionManager added', node);
     }
     detach(node: HTMLElement): void {
         const sm = this.map.get(node);
         if (!sm) return;
         sm.destroy();
         this.map.delete(node);
-        //console.log('[PresetMgr] SuggestionManager removed', node);
+        //debugLog('[PresetMgr] SuggestionManager removed', node);
     }
     handle(muts: MutationRecord[]): void {
         muts.forEach(m => {

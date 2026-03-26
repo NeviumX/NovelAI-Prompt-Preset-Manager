@@ -1,4 +1,5 @@
 import { UIManager } from './UIManager';
+import { debugLog } from './debugLog';
 
 export class PromptBoxObserver {
     map: Map<Element, UIManager>;
@@ -21,7 +22,7 @@ export class PromptBoxObserver {
         if (!this.map.has(root)) {
             const ui = new UIManager(root);
             this.map.set(root, ui);
-            //console.log('[NovelAI Prompt Preset Manager] UI attached.', root);
+            //debugLog('[NovelAI Prompt Preset Manager] UI attached.', root);
         }
     }
     detach(root: Element): void {
@@ -29,7 +30,7 @@ export class PromptBoxObserver {
         if (!ui) return;
         ui.destroy();
         this.map.delete(root);
-        //console.log('[NovelAI Prompt Preset Manager] UI detached.', root);
+        //debugLog('[NovelAI Prompt Preset Manager] UI detached.', root);
     }
     handle(muts: MutationRecord[]): void {
         muts.forEach(m => {
