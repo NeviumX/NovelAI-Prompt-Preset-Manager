@@ -8,15 +8,15 @@ export class JsonManager {
 
     constructor() {
         this.TARGET_PATH = '/ai/generate-image';
-        this._dictCache  = this.buildDict();
+        this._dictCache = this.buildDict();
         this.installPatch();
     }
     /* GM_storage → {TOKEN: "value"} */
     buildDict(): Record<string, string> {
         const dict: Record<string, string> = {};
         GM_listValues()
-          .filter(k => k.startsWith(CONST.PREFIX))
-          .forEach(k => dict[k.slice(CONST.PREFIX.length)] = GM_getValue(k, ''));
+            .filter(k => k.startsWith(CONST.PREFIX))
+            .forEach(k => dict[k.slice(CONST.PREFIX.length)] = GM_getValue(k, ''));
         debugLog('[NovelAI Prompt Preset Manager] Preset dict built.');
         return dict;
     }
@@ -29,7 +29,7 @@ export class JsonManager {
         const naiRemainValue = GM_getValue(CONST.TOKEN_REMAIN_TRG, false);
         const debugModeValue = GM_getValue(CONST.DEBUG_MODE_TRG, false);
         const initialDict = JSON.stringify(this._dictCache)
-                            .replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g,'\\${');
+            .replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
 
         const patchCode = `
             (function(){
@@ -307,6 +307,46 @@ export class JsonManager {
                 while (p < data.length) {
                     const originalLen = readUint32(data, p);
                     const type = String.fromCharCode(...data.subarray(p + 4, p + 8));
+
+                    if (type === 'iTXt') {
+                        let q = p + 8;
+                        let key = '';
+                        while (data[q] && q < p + 8 + originalLen) {
+                            key += String.fromCharCode(data[q++]);
+                        }
+                        if (key === 'Description' && raw.inputPrompt) {
+                            debugLog('[PresetMgr] Found "iTXt" chunk with "Description" key.');
+                            q++;
+                            // iTXt header after keyword: compressionFlag(1) + compressionMethod(1) + languageTag(null-term) + translatedKeyword(null-term)
+                            const compressionFlag = data[q++];
+                            const compressionMethod = data[q++];
+                            while (q < p + 8 + originalLen && data[q] !== 0) q++;
+                            q++;
+                            while (q < p + 8 + originalLen && data[q] !== 0) q++;
+                            q++;
+
+                            const headerLen = q - (p + 8);
+                            const oldTextLen = originalLen - headerLen;
+
+                            const newTxt = new TextEncoder().encode(raw.inputPrompt);
+                            const delta = newTxt.length - oldTextLen;
+                            const out = new Uint8Array(data.length + delta);
+                            const textStart = p + 8 + headerLen;
+
+                            out.set(data.subarray(0, textStart), 0);
+                            out.set(newTxt, textStart);
+                            out.set(data.subarray(textStart + oldTextLen), textStart + newTxt.length);
+
+                            const newChunkLen = headerLen + newTxt.length;
+                            writeUint32(out, p, newChunkLen);
+                            const crc = crc32(out, p + 4, 4 + newChunkLen);
+                            writeUint32(out, p + 8 + newChunkLen, crc);
+
+                            debugLog('[PresetMgr] PNG iTXt description patched.');
+                            data = out;
+                            modified = true;
+                        }
+                    }
 
                     if (type === 'tEXt') {
                         let q = p + 8;

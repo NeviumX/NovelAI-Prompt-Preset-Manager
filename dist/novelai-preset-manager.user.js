@@ -6,7 +6,7 @@
 // @name:id           NovelAI Prompt Preset / Wildcards Manager
 // @name:pt           NovelAI Prompt Preset / Wildcards Manager
 // @namespace         https://github.com/NeviumX/NovelAI-Prompt-Preset-Manager
-// @version           1.4.6
+// @version           1.4.7
 // @author            Nevium7, Gemini 2.5 Pro
 // @description       Script to replace __TOKEN__ with any prompt you want before making a request to the NovelAI API. Also adds a UI to manage presets and wildcards on the image generation page.
 // @description:ja    NovelAI の API にリクエストを行う前に、__TOKEN__ を任意のプロンプトに置き換えるスクリプト。プリセットやワイルドカードを管理するためのUIも画像生成ページに追加します。
@@ -389,6 +389,46 @@ installPatch() {
                 while (p < data.length) {
                     const originalLen = readUint32(data, p);
                     const type = String.fromCharCode(...data.subarray(p + 4, p + 8));
+
+                    if (type === 'iTXt') {
+                        let q = p + 8;
+                        let key = '';
+                        while (data[q] && q < p + 8 + originalLen) {
+                            key += String.fromCharCode(data[q++]);
+                        }
+                        if (key === 'Description' && raw.inputPrompt) {
+                            debugLog('[PresetMgr] Found "iTXt" chunk with "Description" key.');
+                            q++;
+                            // iTXt header after keyword: compressionFlag(1) + compressionMethod(1) + languageTag(null-term) + translatedKeyword(null-term)
+                            const compressionFlag = data[q++];
+                            const compressionMethod = data[q++];
+                            while (q < p + 8 + originalLen && data[q] !== 0) q++;
+                            q++;
+                            while (q < p + 8 + originalLen && data[q] !== 0) q++;
+                            q++;
+
+                            const headerLen = q - (p + 8);
+                            const oldTextLen = originalLen - headerLen;
+
+                            const newTxt = new TextEncoder().encode(raw.inputPrompt);
+                            const delta = newTxt.length - oldTextLen;
+                            const out = new Uint8Array(data.length + delta);
+                            const textStart = p + 8 + headerLen;
+
+                            out.set(data.subarray(0, textStart), 0);
+                            out.set(newTxt, textStart);
+                            out.set(data.subarray(textStart + oldTextLen), textStart + newTxt.length);
+
+                            const newChunkLen = headerLen + newTxt.length;
+                            writeUint32(out, p, newChunkLen);
+                            const crc = crc32(out, p + 4, 4 + newChunkLen);
+                            writeUint32(out, p + 8 + newChunkLen, crc);
+
+                            debugLog('[PresetMgr] PNG iTXt description patched.');
+                            data = out;
+                            modified = true;
+                        }
+                    }
 
                     if (type === 'tEXt') {
                         let q = p + 8;
